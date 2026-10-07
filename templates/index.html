@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A K Singh Personal Voice Suite - Text to Speech</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700;1,900&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: 'Poppins', sans-serif;
+      color: #ffffff;
+      background: radial-gradient(circle at 50% 30%, #58286f 0%, #301340 50%, #100619 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Animated background glow orbs */
+    .bg-orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0.45;
+      animation: floatOrb 12s ease-in-out infinite alternate;
+    }
+
+    .orb-1 {
+      width: 450px;
+      height: 450px;
+      background: #7928ca;
+      top: 15%;
+      left: 10%;
+    }
+
+    .orb-2 {
+      width: 400px;
+      height: 400px;
+      background: #0070f3;
+      bottom: 10%;
+      right: 15%;
+      animation-duration: 16s;
+    }
+
+    @keyframes floatOrb {
+      0% { transform: translateY(0px) scale(1); }
+      100% { transform: translateY(-40px) scale(1.1); }
+    }
+
+    /* Top Banner with glossy text */
+    .top-banner {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 16px 20px;
+      text-align: center;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+      border-bottom: 2px solid rgba(0, 195, 255, 0.5);
+      position: relative;
+      z-index: 10;
+    }
+
+    .top-banner h1 {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 2rem;
+      font-weight: 900;
+      font-style: italic;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      background: linear-gradient(135deg, #090e17 0%, #3b0764 45%, #0284c7 80%, #00d2ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 2px 8px rgba(2, 132, 199, 0.28));
+      display: inline-block;
+      transition: all 0.3s ease;
+    }
+
+    .top-banner h1:hover {
+      filter: drop-shadow(0 4px 16px rgba(0, 210, 255, 0.6));
+      transform: scale(1.02);
+    }
+
+    /* Main Container */
+    .main-wrapper {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 900px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 24px;
+      margin: auto;
+    }
+
+    .title-section {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .title-section h2 {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 2.1rem;
+      font-weight: 900;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #ffffff;
+      margin-bottom: 8px;
+      text-shadow: 0 0 25px rgba(255, 255, 255, 0.2);
+    }
+
+    .title-section p {
+      font-size: 0.95rem;
+      font-style: italic;
+      color: #d1b8e4;
+      letter-spacing: 0.01em;
+    }
+
+    /* Glowing Pill Capsule Container */
+    .capsule-box {
+      width: 100%;
+      max-width: 680px;
+      height: 230px;
+      position: relative;
+      border-radius: 65px;
+      background: rgba(30, 10, 48, 0.45);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1.8px solid #00c3ff;
+      box-shadow: 
+        0 0 20px rgba(0, 195, 255, 0.55),
+        0 0 50px rgba(0, 195, 255, 0.3),
+        inset 0 0 25px rgba(0, 195, 255, 0.15);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.35s ease;
+      animation: neonPulse 3.5s ease-in-out infinite;
+    }
+
+    @keyframes neonPulse {
+      0%, 100% {
+        box-shadow: 0 0 22px rgba(0, 195, 255, 0.6), 0 0 55px rgba(0, 195, 255, 0.35), inset 0 0 25px rgba(0, 195, 255, 0.2);
+      }
+      50% {
+        box-shadow: 0 0 35px rgba(0, 225, 255, 0.8), 0 0 80px rgba(0, 195, 255, 0.5), inset 0 0 35px rgba(0, 225, 255, 0.3);
+      }
+    }
+
+    .capsule-box::before {
+      content: "";
+      position: absolute;
+      top: -30%;
+      left: -20%;
+      width: 140%;
+      height: 100%;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.03) 45%, transparent 55%);
+      transform: rotate(-12deg);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .capsule-textarea {
+      width: 90%;
+      height: 75%;
+      background: transparent;
+      border: none;
+      outline: none;
+      resize: none;
+      color: #ffffff;
+      font-size: 1.05rem;
+      text-align: left;
+      padding: 12px 24px;
+      line-height: 1.6;
+      font-family: 'Poppins', sans-serif;
+      z-index: 2;
+    }
+
+    .capsule-textarea::placeholder {
+      color: rgba(230, 215, 245, 0.7);
+      font-style: italic;
+    }
+
+    /* Audio Player Row with Clear Button */
+    .audio-row {
+      width: 100%;
+      max-width: 580px;
+      margin-top: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+    }
+
+    audio {
+      width: 100%;
+      max-width: 440px;
+      height: 44px;
+      border-radius: 30px;
+      outline: none;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .btn-clear {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 30px;
+      border: 1px solid rgba(244, 63, 94, 0.45);
+      background: rgba(244, 63, 94, 0.15);
+      color: #fda4af;
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      transition: all 0.25s ease;
+      white-space: nowrap;
+    }
+
+    .btn-clear:hover {
+      background: rgba(244, 63, 94, 0.35);
+      color: #ffffff;
+      border-color: #f43f5e;
+      box-shadow: 0 0 16px rgba(244, 63, 94, 0.55);
+      transform: translateY(-2px);
+    }
+
+    .btn-clear:active {
+      transform: translateY(0);
+    }
+
+    .btn-clear svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 20px;
+      margin-top: 26px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 24px;
+      border-radius: 12px;
+      border: none;
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #ffffff;
+      background: #0095d9;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 6px 18px rgba(0, 149, 217, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.35);
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+
+    .btn::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+      transition: all 0.5s ease;
+    }
+
+    .btn:hover:not(:disabled)::before {
+      left: 100%;
+    }
+
+    .btn:hover:not(:disabled) {
+      background: #00b4ff;
+      transform: translateY(-3px) scale(1.02);
+      box-shadow: 0 10px 25px rgba(0, 180, 255, 0.65), 0 0 15px rgba(0, 180, 255, 0.5);
+    }
+
+    .btn:active:not(:disabled) {
+      transform: translateY(0px) scale(0.98);
+      box-shadow: 0 3px 10px rgba(0, 149, 217, 0.4);
+    }
+
+    .btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none !important;
+    }
+
+    .btn svg {
+      width: 20px;
+      height: 20px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.2;
+    }
+
+    #status {
+      margin-top: 18px;
+      font-size: 0.9rem;
+      min-height: 22px;
+      color: #7ce7ff;
+      text-align: center;
+      text-shadow: 0 0 10px rgba(0, 200, 255, 0.4);
+    }
+
+    .footer {
+      width: 100%;
+      padding: 16px 30px;
+      display: flex;
+      justify-content: flex-end;
+      z-index: 2;
+    }
+
+    .footer span {
+      font-size: 0.9rem;
+      font-style: italic;
+      color: #d1b8e4;
+      opacity: 0.9;
+    }
+
+    @media (max-width: 720px) {
+      .top-banner h1 { font-size: 1.3rem; }
+      .title-section h2 { font-size: 1.5rem; }
+      .capsule-box { border-radius: 40px; height: 200px; }
+      .footer { justify-content: center; }
+      .audio-row { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+
+  <header class="top-banner">
+    <h1>A K Singh Personal Voice Suite</h1>
+  </header>
+
+  <main class="main-wrapper">
+    <div class="title-section">
+      <h2>Text to Speech Converter</h2>
+      <p>Turn real-world text into accurate speech - fast, simple and reliable</p>
+    </div>
+
+    <div class="capsule-box">
+      <textarea id="text-input" class="capsule-textarea" placeholder="Type or Paste your text here"></textarea>
+    </div>
+
+    <div class="audio-row">
+      <audio id="audio-player" controls style="display: none;"></audio>
+      <button id="clear-btn" class="btn-clear" title="Clear text and audio">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          <line x1="10" y1="11" x2="10" y2="17"></line>
+          <line x1="14" y1="11" x2="14" y2="17"></line>
+        </svg>
+        <span>Clear Text</span>
+      </button>
+    </div>
+
+    <div class="btn-row">
+      <button id="convert-btn" class="btn">
+        <span>Convert to Audio</span>
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+          <line x1="12" y1="19" x2="12" y2="23"/>
+          <line x1="8" y1="23" x2="16" y2="23"/>
+        </svg>
+      </button>
+
+      <button id="download-btn" class="btn" disabled>
+        <span>Download Audio</span>
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+      </button>
+    </div>
+
+    <div id="status"></div>
+  </main>
+
+  <footer class="footer">
+    <span>Designed and Developed - S K Roy</span>
+  </footer>
+
+  <script>
+    let currentAudioBlob = null;
+    const textInput = document.getElementById('text-input');
+    const convertBtn = document.getElementById('convert-btn');
+    const downloadBtn = document.getElementById('download-btn');
+    const clearBtn = document.getElementById('clear-btn');
+    const audioPlayer = document.getElementById('audio-player');
+    const statusMsg = document.getElementById('status');
+
+    clearBtn.addEventListener('click', () => {
+      textInput.value = '';
+      audioPlayer.pause();
+      audioPlayer.src = '';
+      audioPlayer.style.display = 'none';
+      currentAudioBlob = null;
+      downloadBtn.disabled = true;
+      statusMsg.textContent = 'Text and audio cleared.';
+      textInput.focus();
+    });
+
+    convertBtn.addEventListener('click', async () => {
+      const text = textInput.value.trim();
+      if (!text) {
+        statusMsg.textContent = 'Please enter text first.';
+        return;
+      }
+
+      statusMsg.textContent = 'Synthesizing voice... Please wait.';
+      convertBtn.disabled = true;
+      downloadBtn.disabled = true;
+
+      try {
+        const response = await fetch('/api/convert', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: text })
+        });
+
+        if (!response.ok) {
+          let errorText = 'Conversion failed';
+          try {
+            const errData = await response.json();
+            errorText = errData.error || errorText;
+          } catch (_) {
+            errorText = await response.text();
+          }
+          throw new Error(errorText);
+        }
+
+        currentAudioBlob = await response.blob();
+        const audioUrl = URL.createObjectURL(currentAudioBlob);
+
+        audioPlayer.src = audioUrl;
+        audioPlayer.style.display = 'block';
+        audioPlayer.play();
+
+        downloadBtn.disabled = false;
+        statusMsg.textContent = 'Audio ready and playing!';
+      } catch (err) {
+        statusMsg.textContent = 'Error: ' + err.message;
+      } finally {
+        convertBtn.disabled = false;
+      }
+    });
+
+    downloadBtn.addEventListener('click', async () => {
+      if (!currentAudioBlob) return;
+
+      if ('showSaveFilePicker' in window) {
+        try {
+          const handle = await window.showSaveFilePicker({
+            suggestedName: 'speech.mp3',
+            types: [{
+              description: 'MP3 Audio File',
+              accept: { 'audio/mpeg': ['.mp3'] }
+            }]
+          });
+          const writable = await handle.createWritable();
+          await writable.write(currentAudioBlob);
+          await writable.close();
+          statusMsg.textContent = 'File saved successfully!';
+        } catch (err) {
+          if (err.name !== 'AbortError') {
+            statusMsg.textContent = 'Save cancelled or failed.';
+          }
+        }
+      } else {
+        const url = URL.createObjectURL(currentAudioBlob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = 'speech.mp3';
+        document.body.appendChild(a);
+        a.click();
+        URL.revokeObjectURL(url);
+        statusMsg.textContent = 'Download started!';
+      }
+    });
+  </script>
+</body>
+</html>
