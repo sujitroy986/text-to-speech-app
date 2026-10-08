@@ -30,7 +30,6 @@ def convert_text():
         return jsonify({"error": "No text provided"}), 400
 
     try:
-        # Create an isolated event loop to prevent WSGI/serverless thread conflicts
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
