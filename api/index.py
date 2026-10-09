@@ -1,15 +1,25 @@
 import os
 import io
+import re
 import asyncio
 from flask import Flask, request, jsonify, send_file, render_template
 
 template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'templates'))
 app = Flask(__name__, template_folder=template_dir)
 
-VOICES = {
-    "male": "en-IN-PrabhatNeural",
-    "female": "en-IN-NeerjaNeural"
+# Verified realistic Microsoft Indian Neural Voices
+VOICE_MAP = {
+    # Hindi Neural
+    "hi_male": "hi-IN-MadhurNeural",
+    "hi_female": "hi-IN-SwaraNeural",
+    # Indian English Neural
+    "en_male": "en-IN-PrabhatNeural",
+    "en_female": "en-IN-NeerjaNeural",
 }
+
+def is_devanagari_hindi(text: str) -> bool:
+    """Detects if input contains Hindi/Devanagari characters."""
+    return bool(re.search(r'[\u0900-\u097F]', text))
 
 async def synthesize_mp3_in_memory(text: str, voice: str) -> bytes:
     import edge_tts
@@ -64,14 +74,17 @@ def extract_text():
         return jsonify({"error": f"Failed to parse document: {str(e)}"}), 500
 
 @app.route("/api/convert", methods=["POST"])
+@app.route("/api/convert", methods=["POST"])
 def convert_text():
     data = request.get_json(silent=True) or {}
     text = data.get("text", "").strip()
-    voice_type = data.get("voice", "male").lower()
-    selected_voice = VOICES.get(voice_type, VOICES["male"])
+    voice_key = data.get("voice", "hi_male").lower()
 
     if not text:
         return jsonify({"error": "No text provided"}), 400
+
+    # Direct selection from the 4 voices
+    selected_voice = VOICE_MAP.get(voice_key, VOICE_MAP["hi_male"])
 
     try:
         loop = asyncio.new_event_loop()
@@ -81,11 +94,14 @@ def convert_text():
         finally:
             loop.close()
 
+        if not audio_data:
+            return jsonify({"error": f"Synthesis returned empty buffer for voice {selected_voice}."}), 500
+
         return send_file(
             io.BytesIO(audio_data),
             mimetype="audio/mpeg",
             as_attachment=False,
-            download_name=f"{voice_type}_speech.mp3"
+            download_name="speech.mp3"
         )
     except Exception as e:
         return jsonify({"error": str(e)}), 500

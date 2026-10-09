@@ -59,7 +59,6 @@
       100% { transform: translateY(-40px) scale(1.1); }
     }
 
-    /* Top Banner */
     .top-banner {
       width: 100%;
       background: rgba(255, 255, 255, 0.96);
@@ -93,7 +92,6 @@
       transform: scale(1.02);
     }
 
-    /* Main Container */
     .main-wrapper {
       position: relative;
       z-index: 2;
@@ -108,7 +106,7 @@
 
     .title-section {
       text-align: center;
-      margin-bottom: 24px;
+      margin-bottom: 20px;
     }
 
     .title-section h2 {
@@ -118,7 +116,7 @@
       letter-spacing: 0.05em;
       text-transform: uppercase;
       color: #ffffff;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
       text-shadow: 0 0 25px rgba(255, 255, 255, 0.2);
     }
 
@@ -126,72 +124,65 @@
       font-size: 0.95rem;
       font-style: italic;
       color: #d1b8e4;
-      letter-spacing: 0.01em;
     }
 
-    /* Control Bar: Voice Toggle & File Upload */
+    /* Controls Bar */
     .controls-bar {
       width: 100%;
-      max-width: 680px;
+      max-width: 720px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-bottom: 16px;
-      padding: 0 8px;
-      gap: 16px;
+      padding: 0 6px;
+      gap: 12px;
       flex-wrap: wrap;
     }
 
-    /* Voice Pill Switch */
-    .voice-toggle-group {
+    .voice-select-box {
       display: inline-flex;
-      background: rgba(30, 10, 48, 0.7);
-      border: 1.5px solid rgba(0, 195, 255, 0.4);
+      align-items: center;
+      background: rgba(30, 10, 48, 0.75);
+      border: 1.5px solid rgba(0, 195, 255, 0.45);
       border-radius: 30px;
-      padding: 4px;
+      padding: 6px 14px;
       backdrop-filter: blur(10px);
       box-shadow: 0 0 15px rgba(0, 195, 255, 0.2);
+      gap: 10px;
     }
 
-    .voice-btn {
+    .voice-select-box label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #7ce7ff;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .voice-select-box select {
       background: transparent;
       border: none;
-      color: #d1b8e4;
-      padding: 8px 18px;
-      border-radius: 24px;
-      font-family: 'Poppins', sans-serif;
-      font-size: 0.88rem;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.3s ease;
-    }
-
-    .voice-btn.active {
-      background: linear-gradient(135deg, #0095d9, #00c3ff);
       color: #ffffff;
-      box-shadow: 0 0 14px rgba(0, 195, 255, 0.6);
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 500;
+      outline: none;
+      cursor: pointer;
     }
 
-    .voice-btn svg {
-      width: 16px;
-      height: 16px;
-      fill: none;
-      stroke: currentColor;
-      stroke-width: 2.2;
+    .voice-select-box select option {
+      background: #1c082c;
+      color: #ffffff;
     }
 
-    /* File Upload Pill */
     .file-upload-btn {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      padding: 9px 18px;
+      padding: 8px 18px;
       border-radius: 30px;
       border: 1.5px solid rgba(0, 195, 255, 0.45);
-      background: rgba(30, 10, 48, 0.7);
+      background: rgba(30, 10, 48, 0.75);
       color: #7ce7ff;
       font-family: 'Poppins', sans-serif;
       font-size: 0.88rem;
@@ -225,7 +216,7 @@
     /* Glowing Pill Capsule Container */
     .capsule-box {
       width: 100%;
-      max-width: 680px;
+      max-width: 720px;
       height: 230px;
       position: relative;
       border-radius: 65px;
@@ -288,7 +279,6 @@
       font-style: italic;
     }
 
-    /* Audio Player Row with Clear Button */
     .audio-row {
       width: 100%;
       max-width: 580px;
@@ -340,7 +330,6 @@
       stroke: currentColor;
     }
 
-    /* Action Buttons */
     .btn-row {
       display: flex;
       gap: 20px;
@@ -387,11 +376,6 @@
       background: #00b4ff;
       transform: translateY(-3px) scale(1.02);
       box-shadow: 0 10px 25px rgba(0, 180, 255, 0.65), 0 0 15px rgba(0, 180, 255, 0.5);
-    }
-
-    .btn:active:not(:disabled) {
-      transform: translateY(0px) scale(0.98);
-      box-shadow: 0 3px 10px rgba(0, 149, 217, 0.4);
     }
 
     .btn:disabled {
@@ -458,21 +442,20 @@
       <p>Turn real-world text into accurate speech - fast, simple and reliable</p>
     </div>
 
-    <!-- Controls Bar -->
+    <!-- Voice Selector & Upload Controls -->
     <div class="controls-bar">
-      <div class="voice-toggle-group">
-        <button type="button" class="voice-btn active" data-voice="male" id="voice-male-btn">
-          <svg viewBox="0 0 24 24"><path d="M12 14a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-7 8a7 7 0 0 1 14 0H5z"/></svg>
-          Male Voice
-        </button>
-        <button type="button" class="voice-btn" data-voice="female" id="voice-female-btn">
-          <svg viewBox="0 0 24 24"><path d="M12 13a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-7 9a7 7 0 0 1 14 0H5z"/><path d="M12 17v5m-2-2h4"/></svg>
-          Female Voice
-        </button>
+     <div class="voice-select-box">
+        <label for="voice-select">Voice:</label>
+        <select id="voice-select">
+          <option value="hi_male" selected>Hindi Male (Madhur)</option>
+          <option value="hi_female">Hindi Female (Swara)</option>
+          <option value="en_male">Indian English Male (Prabhat)</option>
+          <option value="en_female">Indian English Female (Neerja)</option>
+        </select>
       </div>
 
       <div class="file-upload-wrapper">
-        <label for="file-input" class="file-upload-btn" id="upload-label">
+        <label for="file-input" class="file-upload-btn">
           <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
             <polyline points="14 2 14 8 20 8"></polyline>
@@ -486,7 +469,7 @@
     </div>
 
     <div class="capsule-box">
-      <textarea id="text-input" class="capsule-textarea" placeholder="Type, paste, or upload your document here..."></textarea>
+      <textarea id="text-input" class="capsule-textarea" placeholder="यहाँ हिंदी या अंग्रेजी टेक्स्ट लिखें या पेस्ट करें... Type or upload here..."></textarea>
     </div>
 
     <div class="audio-row">
@@ -532,8 +515,6 @@
 
   <script>
     let currentAudioBlob = null;
-    let selectedVoice = "male";
-
     const textInput = document.getElementById('text-input');
     const convertBtn = document.getElementById('convert-btn');
     const downloadBtn = document.getElementById('download-btn');
@@ -541,22 +522,7 @@
     const audioPlayer = document.getElementById('audio-player');
     const statusMsg = document.getElementById('status');
     const fileInput = document.getElementById('file-input');
-    const voiceMaleBtn = document.getElementById('voice-male-btn');
-    const voiceFemaleBtn = document.getElementById('voice-female-btn');
-
-    voiceMaleBtn.addEventListener('click', () => {
-      selectedVoice = "male";
-      voiceMaleBtn.classList.add('active');
-      voiceFemaleBtn.classList.remove('active');
-      statusMsg.textContent = 'Voice set to Indian Male (Prabhat).';
-    });
-
-    voiceFemaleBtn.addEventListener('click', () => {
-      selectedVoice = "female";
-      voiceFemaleBtn.classList.add('active');
-      voiceMaleBtn.classList.remove('active');
-      statusMsg.textContent = 'Voice set to Indian Female (Neerja).';
-    });
+    const voiceSelect = document.getElementById('voice-select');
 
     fileInput.addEventListener('change', async (e) => {
       const file = e.target.files[0];
@@ -612,15 +578,18 @@
         return;
       }
 
-      statusMsg.textContent = `Synthesizing ${selectedVoice} voice... Please wait.`;
+      const voice = voiceSelect.value;  
+      const selectedVoiceLabel = voiceSelect.options[voiceSelect.selectedIndex].text;
+      statusMsg.textContent = `Synthesizing with ${selectedVoiceLabel}... Please wait.`;      
       convertBtn.disabled = true;
       downloadBtn.disabled = true;
+
 
       try {
         const response = await fetch('/api/convert', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: text, voice: selectedVoice })
+          body: JSON.stringify({ text: text, voice: voice })
         });
 
         if (!response.ok) {
@@ -642,7 +611,7 @@
         audioPlayer.play();
 
         downloadBtn.disabled = false;
-        statusMsg.textContent = 'Audio ready and playing!';
+        statusMsg.textContent = `Audio generated successfully!`;
       } catch (err) {
         statusMsg.textContent = 'Error: ' + err.message;
       } finally {
@@ -652,8 +621,7 @@
 
     downloadBtn.addEventListener('click', async () => {
       if (!currentAudioBlob) return;
-
-      const fileName = `${selectedVoice}_speech.mp3`;
+      const fileName = `indian_voice_speech.mp3`;
 
       if ('showSaveFilePicker' in window) {
         try {
