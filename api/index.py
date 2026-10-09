@@ -1,29 +1,28 @@
 import os
 import io
-import re
 import asyncio
 from flask import Flask, request, jsonify, send_file, render_template
 
 template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'templates'))
 app = Flask(__name__, template_folder=template_dir)
 
-# Verified realistic Microsoft Indian Neural Voices
 VOICE_MAP = {
-    # Hindi Neural
     "hi_male": "hi-IN-MadhurNeural",
     "hi_female": "hi-IN-SwaraNeural",
-    # Indian English Neural
     "en_male": "en-IN-PrabhatNeural",
     "en_female": "en-IN-NeerjaNeural",
 }
 
-def is_devanagari_hindi(text: str) -> bool:
-    """Detects if input contains Hindi/Devanagari characters."""
-    return bool(re.search(r'[\u0900-\u097F]', text))
+RATE_MAP = {
+    "0.75x": "-25%",
+    "1.0x": "+0%",
+    "1.25x": "+25%",
+    "1.5x": "+50%"
+}
 
-async def synthesize_mp3_in_memory(text: str, voice: str) -> bytes:
+async def synthesize_mp3_in_memory(text: str, voice: str, rate: str = "+0%") -> bytes:
     import edge_tts
-    communicate = edge_tts.Communicate(text, voice)
+    communicate = edge_tts.Communicate(text, voice, rate=rate)
     audio_buffer = bytearray()
     async for chunk in communicate.stream():
         if chunk["type"] == "audio":
@@ -74,28 +73,28 @@ def extract_text():
         return jsonify({"error": f"Failed to parse document: {str(e)}"}), 500
 
 @app.route("/api/convert", methods=["POST"])
-@app.route("/api/convert", methods=["POST"])
 def convert_text():
     data = request.get_json(silent=True) or {}
     text = data.get("text", "").strip()
     voice_key = data.get("voice", "hi_male").lower()
+    speed_key = data.get("speed", "1.0x").lower()
 
     if not text:
         return jsonify({"error": "No text provided"}), 400
 
-    # Direct selection from the 4 voices
     selected_voice = VOICE_MAP.get(voice_key, VOICE_MAP["hi_male"])
+    selected_rate = RATE_MAP.get(speed_key, "+0%")
 
     try:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
-            audio_data = loop.run_until_complete(synthesize_mp3_in_memory(text, selected_voice))
+            audio_data = loop.run_until_complete(synthesize_mp3_in_memory(text, selected_voice, selected_rate))
         finally:
             loop.close()
 
         if not audio_data:
-            return jsonify({"error": f"Synthesis returned empty buffer for voice {selected_voice}."}), 500
+            return jsonify({"error": "Synthesis returned empty buffer."}), 500
 
         return send_file(
             io.BytesIO(audio_data),
