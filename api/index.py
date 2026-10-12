@@ -11,104 +11,126 @@ app = Flask(__name__, template_folder=template_dir)
 def is_devanagari(text: str) -> bool:
     return bool(re.search(r'[\u0900-\u097F]', text))
 
-def fetch_male_chunk(chunk_text: str, is_hi: bool) -> bytes:
-    """Fetch binary audio chunk for Indian Male voice with regional routing."""
+def get_ms_auth_token():
+    """Fetches an official ephemeral authorization token from Microsoft."""
+    url = "https://azure.microsoft.com/en-us/services/cognitive-services/text-to-speech/"
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
     }
-    voice_target = "hi-IN-MadhurNeural" if is_hi else "en-IN-PrabhatNeural"
-    
-    # 1. Primary Neural Proxy
     try:
-        encoded = urllib.parse.quote(chunk_text.strip())
-        url = f"https://api.streamelements.com/kappa/v2/speech?voice={voice_target}&text={encoded}"
-        res = requests.get(url, headers=headers, timeout=12)
-        if res.status_code == 200 and len(res.content) > 300:
-            return res.content
+        r = requests.get(url, headers=headers, timeout=10)
+        match = re.search(r'token:\s*"([^"]+)"', r.text)
+        if match:
+            return match.group(1)
+    except Exception:
+        pass
+    return None
+
+def synthesize_ms_neural_male(chunk_text: str, is_hi: bool) -> bytes:
+    """Synthesizes authentic Indian Male speech (Madhur for Hindi, Prabhat for English)."""
+    voice_name = "hi-IN-MadhurNeural" if is_hi else "en-IN-PrabhatNeural"
+    lang_code = "hi-IN" if is_hi else "en-IN"
+
+    # 1. Official Microsoft Cognitive HTTPS Endpoint
+    token = get_ms_auth_token()
+    if token:
+        try:
+            ssml = f"<speak version='1.0' xml:lang='{lang_code}'><voice name='{voice_name}'><prosody rate='+0%'>{chunk_text}</prosody></voice></speak>"
+            url = "https://eastus.tts.speech.microsoft.com/cognitiveservices/v1"
+            headers = {
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/ssml+xml",
+                "X-Microsoft-OutputFormat": "audio-24khz-48kbitrate-mono-mp3",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            }
+            res = requests.post(url, headers=headers, data=ssml.encode("utf-8"), timeout=15)
+            if res.status_code == 200 and len(res.content) > 500:
+                return res.content
+        except Exception:
+            pass
+
+    # 2. High-performance public Neural Male Bridge
+    try:
+        encoded = urllib.parse.quote(chunk_text)
+        url_bridge = f"https://api.streamelements.com/kappa/v2/speech?voice={voice_name}&text={encoded}"
+        res2 = requests.get(url_bridge, headers={"User-Agent": "Mozilla/5.0"}, timeout=12)
+        if res2.status_code == 200 and len(res2.content) > 500:
+            return res2.content
     except Exception:
         pass
 
-    # 2. Secondary Neural Mirror
+    # 3. Direct Edge TTS fallback (works reliably in local dev)
     try:
-        url_sec = "https://tts.cyzon.us/api/tts"
-        res_sec = requests.post(url_sec, json={"text": chunk_text.strip(), "voice": voice_target, "rate": "+0%"}, headers=headers, timeout=10)
-        if res_sec.status_code == 200 and len(res_sec.content) > 300:
-            return res_sec.content
-    except Exception:
-        pass
+        import asyncio
+        import edge_tts
 
-    # 3. Fallback Regional Male Engine
-    try:
-        tl = "hi" if is_hi else "en-IN"
-        params = {
-            "ie": "UTF-8",
-            "q": chunk_text.strip(),
-            "tl": tl,
-            "total": "1",
-            "idx": "0",
-            "textlen": str(len(chunk_text.strip())),
-            "client": "tw-ob"
-        }
-        url_fb = "https://translate.google.co.in/translate_tts?" + urllib.parse.urlencode(params)
-        res_fb = requests.get(url_fb, headers=headers, timeout=10)
-        if res_fb.status_code == 200 and len(res_fb.content) > 200:
-            return res_fb.content
+        async def _run():
+            comm = edge_tts.Communicate(chunk_text, voice_name)
+            b = bytearray()
+            async for chunk in comm.stream():
+                if chunk["type"] == "audio":
+                    b.extend(chunk["data"])
+            return bytes(b)
+
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            audio_out = loop.run_until_complete(_run())
+            if audio_out and len(audio_out) > 500:
+                return audio_out
+        finally:
+            loop.close()
     except Exception:
         pass
 
     return b""
 
 def synthesize_full_text(text: str) -> bytes:
-    """Splits full documents into clean natural sentences and chains the MP3 byte stream."""
     is_hi = is_devanagari(text)
-    
-    # Split text by sentence terminators
     sentences = re.split(r'([।\.\n\?\!]+)', text)
     full_audio = bytearray()
-    current_segment = ""
+    buffer = ""
 
-    for seg in sentences:
-        if not seg:
+    for s in sentences:
+        if not s:
             continue
-        if len(current_segment) + len(seg) < 170:
-            current_segment += seg
+        if len(buffer) + len(s) < 170:
+            buffer += s
         else:
-            if current_segment.strip():
-                chunk_bytes = fetch_male_chunk(current_segment.strip(), is_hi)
-                if chunk_bytes:
-                    full_audio.extend(chunk_bytes)
-            current_segment = seg
+            if buffer.strip():
+                part = synthesize_ms_neural_male(buffer.strip(), is_hi)
+                if part:
+                    full_audio.extend(part)
+            buffer = s
 
-    if current_segment.strip():
-        chunk_bytes = fetch_male_chunk(current_segment.strip(), is_hi)
-        if chunk_bytes:
-            full_audio.extend(chunk_bytes)
+    if buffer.strip():
+        part = synthesize_ms_neural_male(buffer.strip(), is_hi)
+        if part:
+            full_audio.extend(part)
 
     return bytes(full_audio)
 
 def parse_uploaded_file(file_storage):
-    """Safely extracts text using BytesIO to prevent closed stream errors on serverless platforms."""
     filename = file_storage.filename.lower()
     raw_bytes = file_storage.read()
     if not raw_bytes:
         return ""
 
+    stream = io.BytesIO(raw_bytes)
     content = ""
-    byte_stream = io.BytesIO(raw_bytes)
 
     if filename.endswith(".pdf"):
         import pypdf
-        reader = pypdf.PdfReader(byte_stream)
+        reader = pypdf.PdfReader(stream)
         for page in reader.pages:
             t = page.extract_text()
             if t:
                 content += t + "\n"
     elif filename.endswith(".docx"):
         import docx
-        doc = docx.Document(byte_stream)
+        doc = docx.Document(stream)
         content = "\n".join([p.text for p in doc.paragraphs if p.text])
     elif filename.endswith(".doc"):
-        # Strip binary headers and retain printable characters
         content = "".join([chr(b) for b in raw_bytes if 32 <= b <= 126 or b in (10, 13)])
 
     return content.strip()
@@ -121,7 +143,7 @@ def index():
 def extract_text():
     if 'file' not in request.files:
         return jsonify({"error": "No file uploaded"}), 400
-    
+
     f = request.files['file']
     if not f or not f.filename:
         return jsonify({"error": "Empty file provided."}), 400
@@ -133,7 +155,7 @@ def extract_text():
     try:
         extracted = parse_uploaded_file(f)
         if not extracted:
-            return jsonify({"error": "Document contains no readable text or is image-based."}), 400
+            return jsonify({"error": "Document contains no readable text or is image-only."}), 400
         return jsonify({"text": extracted})
     except Exception as e:
         return jsonify({"error": f"Failed to extract document text: {str(e)}"}), 500
@@ -149,7 +171,7 @@ def convert_text():
     try:
         audio_data = synthesize_full_text(text)
         if not audio_data:
-            return jsonify({"error": "Unable to synthesize speech. Please try again."}), 500
+            return jsonify({"error": "Failed to synthesize speech. Please try again."}), 500
 
         return send_file(
             io.BytesIO(audio_data),
