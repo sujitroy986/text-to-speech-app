@@ -26,7 +26,7 @@
       padding: 0;
     }
 
-    /* Fixed 100vh canvas without scrolling */
+    /* Fixed 100vh canvas: no scrollbars */
     html, body {
       height: 100vh;
       max-height: 100vh;
@@ -316,8 +316,8 @@
 
     .editor-textarea {
       width: 100%;
-      height: 220px;
-      max-height: 36vh;
+      height: 200px;
+      max-height: 34vh;
       background: transparent;
       border: none;
       outline: none;
@@ -408,15 +408,16 @@
       100% { height: 16px; opacity: 1; box-shadow: 0 0 8px rgba(56, 189, 248, 0.8); }
     }
 
+    /* Player Container */
     .player-section {
-      margin-top: 8px;
+      margin-top: 10px;
       display: flex;
       justify-content: center;
     }
 
     audio {
       width: 100%;
-      height: 36px;
+      height: 38px;
       border-radius: 10px;
       outline: none;
       filter: invert(0.92) hue-rotate(180deg);
@@ -531,7 +532,7 @@
     }
 
     @media (max-height: 720px) {
-      .editor-textarea { height: 160px; }
+      .editor-textarea { height: 150px; }
       .app-container { padding: 4px 16px; }
       .header-section h2 { font-size: 1.5rem; }
     }
@@ -569,20 +570,18 @@
           <div class="input-pill">
             <label for="voice-select">Voice</label>
             <select id="voice-select">
-              <option value="hi-IN-MadhurNeural" selected>Hindi Male (Madhur)</option>
-              <option value="hi-IN-SwaraNeural">Hindi Female (Swara)</option>
-              <option value="en-IN-PrabhatNeural">Indian English Male (Prabhat)</option>
-              <option value="en-IN-NeerjaNeural">Indian English Female (Neerja)</option>
+              <option value="male" selected>Male (Indian Accent)</option>
+              <option value="female">Female (Indian Accent)</option>
             </select>
           </div>
 
           <div class="input-pill">
             <label for="speed-select">Speed</label>
             <select id="speed-select">
-              <option value="-25%">0.75x</option>
-              <option value="+0%" selected>1.0x (Normal)</option>
-              <option value="+25%">1.25x</option>
-              <option value="+50%">1.5x</option>
+              <option value="0.75">0.75x</option>
+              <option value="1.0" selected>1.0x (Normal)</option>
+              <option value="1.25">1.25x</option>
+              <option value="1.5">1.5x</option>
             </select>
           </div>
         </div>
@@ -623,10 +622,12 @@
         <div class="wave-bar"></div>
       </div>
 
+      <!-- HTML5 Audio Player -->
       <div class="player-section">
         <audio id="audio-player" controls style="display: none;"></audio>
       </div>
 
+      <!-- Actions Bar -->
       <div class="action-bar">
         <button id="download-btn" class="pro-btn pro-btn-secondary" disabled>
           <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
@@ -689,6 +690,7 @@
     audioPlayer.addEventListener('pause', () => visualizer.classList.remove('active'));
     audioPlayer.addEventListener('ended', () => visualizer.classList.remove('active'));
 
+    // Document File Upload
     fileInput.addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -726,7 +728,6 @@
     });
 
     clearBtn.addEventListener('click', () => {
-      textInput.value = '';
       audioPlayer.pause();
       audioPlayer.src = '';
       audioPlayer.style.display = 'none';
@@ -734,6 +735,7 @@
       currentAudioBlob = null;
       downloadBtn.disabled = true;
       fileInput.value = '';
+      textInput.value = '';
       updateCounter();
       statusMsg.textContent = 'Cleared editor content.';
       textInput.focus();
@@ -783,7 +785,7 @@
         audioPlayer.play();
 
         downloadBtn.disabled = false;
-        statusMsg.textContent = 'Audio ready and playing!';
+        statusMsg.textContent = `Playing ${selectedVoiceLabel}!`;
       } catch (err) {
         statusMsg.textContent = 'Error: ' + err.message;
       } finally {
@@ -796,7 +798,7 @@
 
     downloadBtn.addEventListener('click', async () => {
       if (!currentAudioBlob) return;
-      const fileName = `aksingh_${voiceSelect.value}.mp3`;
+      const fileName = `aksingh_${voiceSelect.value}_indian_speech.mp3`;
 
       if ('showSaveFilePicker' in window) {
         try {

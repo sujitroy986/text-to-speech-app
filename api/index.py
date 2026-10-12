@@ -1,37 +1,43 @@
 import os
 import io
+import re
 import asyncio
 from flask import Flask, request, jsonify, send_file, render_template
 
 template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'templates'))
 app = Flask(__name__, template_folder=template_dir)
 
-VOICE_MAP = {
-    "hi-IN-MadhurNeural": "hi-IN-MadhurNeural",
-    "hi-IN-SwaraNeural": "hi-IN-SwaraNeural",
-    "en-IN-PrabhatNeural": "en-IN-PrabhatNeural",
-    "en-IN-NeerjaNeural": "en-IN-NeerjaNeural",
-    "hi_male": "hi-IN-MadhurNeural",
-    "hi_female": "hi-IN-SwaraNeural",
-    "en_male": "en-IN-PrabhatNeural",
-    "en_female": "en-IN-NeerjaNeural",
+# Authentic Indian Neural Voices
+INDIAN_VOICES = {
+    "male": {
+        "hi": "hi-IN-MadhurNeural",
+        "en": "en-IN-PrabhatNeural"
+    },
+    "female": {
+        "hi": "hi-IN-SwaraNeural",
+        "en": "en-IN-NeerjaNeural"
+    }
 }
 
-async def synthesize_speech(text: str, voice: str, rate: str) -> bytes:
+RATE_MAP = {
+    "0.75": "-25%",
+    "1.0": "+0%",
+    "1.25": "+25%",
+    "1.5": "+50%"
+}
+
+def is_hindi(text: str) -> bool:
+    """Detect if text contains Devanagari Hindi characters."""
+    return bool(re.search(r'[\u0900-\u097F]', text))
+
+async def generate_speech_stream(text: str, voice_name: str, rate_val: str) -> bytes:
     import edge_tts
-    
-    # Instantiate with explicit boundary configurations
-    communicate = edge_tts.Communicate(
-        text=text, 
-        voice=voice, 
-        rate=rate,
-        receive_timeout=15
-    )
-    buffer = bytearray()
+    communicate = edge_tts.Communicate(text=text, voice=voice_name, rate=rate_val)
+    audio_buffer = bytearray()
     async for chunk in communicate.stream():
         if chunk["type"] == "audio":
-            buffer.extend(chunk["data"])
-    return bytes(buffer)
+            audio_buffer.extend(chunk["data"])
+    return bytes(audio_buffer)
 
 def extract_text_from_file(file_storage):
     filename = file_storage.filename.lower()
@@ -63,7 +69,7 @@ def extract_text():
     f = request.files['file']
     if not f or not f.filename:
         return jsonify({"error": "Empty file selection"}), 400
-    
+
     fname = f.filename.lower()
     if not (fname.endswith('.pdf') or fname.endswith('.docx') or fname.endswith('.doc')):
         return jsonify({"error": "Only PDF, DOC, and DOCX files are supported."}), 400
@@ -80,35 +86,38 @@ def extract_text():
 def convert_text():
     data = request.get_json(silent=True) or {}
     text = data.get("text", "").strip()
-    voice_param = data.get("voice", "hi-IN-MadhurNeural")
-    speed_param = data.get("speed", "+0%")
+    gender = data.get("voice", "male").lower()
+    speed = str(data.get("speed", "1.0"))
 
     if not text:
-        return jsonify({"error": "No text provided"}), 400
+        return jsonify({"error": "Please enter text or upload a document."}), 400
 
-    selected_voice = VOICE_MAP.get(voice_param, "hi-IN-MadhurNeural")
+    # Auto-detect language script to pick the right Indian neural voice
+    lang_key = "hi" if is_hindi(text) else "en"
+    voice_name = INDIAN_VOICES.get(gender, INDIAN_VOICES["male"])[lang_key]
+    rate_val = RATE_MAP.get(speed, "+0%")
 
     try:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
             audio_bytes = loop.run_until_complete(
-                synthesize_speech(text, selected_voice, speed_param)
+                generate_speech_stream(text, voice_name, rate_val)
             )
         finally:
             loop.close()
 
         if not audio_bytes:
-            return jsonify({"error": "Empty audio stream returned."}), 500
+            return jsonify({"error": "Synthesizer returned empty stream."}), 500
 
         return send_file(
             io.BytesIO(audio_bytes),
             mimetype="audio/mpeg",
             as_attachment=False,
-            download_name="speech.mp3"
+            download_name=f"{voice_name}.mp3"
         )
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"Voice synthesis error: {str(e)}"}), 500
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
