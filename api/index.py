@@ -22,12 +22,24 @@ RATE_MAP = {
 
 async def synthesize_mp3_in_memory(text: str, voice: str, rate: str = "+0%") -> bytes:
     import edge_tts
-    communicate = edge_tts.Communicate(text, voice, rate=rate)
-    audio_buffer = bytearray()
-    async for chunk in communicate.stream():
-        if chunk["type"] == "audio":
-            audio_buffer.extend(chunk["data"])
-    return bytes(audio_buffer)
+    
+    last_err = None
+    for attempt in range(3):
+        try:
+            communicate = edge_tts.Communicate(text, voice, rate=rate)
+            audio_buffer = bytearray()
+            async for chunk in communicate.stream():
+                if chunk["type"] == "audio":
+                    audio_buffer.extend(chunk["data"])
+            if audio_buffer:
+                return bytes(audio_buffer)
+        except Exception as err:
+            last_err = err
+            await asyncio.sleep(0.5 * (attempt + 1))
+            
+    if last_err:
+        raise last_err
+    return b""
 
 def extract_text_from_file(file_storage):
     filename = file_storage.filename.lower()
