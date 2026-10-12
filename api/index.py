@@ -20,33 +20,22 @@ RATE_MAP = {
     "1.5x": "+50%"
 }
 
-# Fallback mapper for Google TTS if Microsoft Edge blocks cloud IP
-GTTS_LANG_MAP = {
-    "hi_male": ("hi", "co.in"),
-    "hi_female": ("hi", "co.in"),
-    "en_male": ("en", "co.in"),
-    "en_female": ("en", "co.in")
-}
-
-async def synthesize_edge_tts(text: str, voice: str, rate: str) -> bytes:
+async def synthesize_neural_voice(text: str, voice_name: str, rate_val: str) -> bytes:
     import edge_tts
-    communicate = edge_tts.Communicate(text, voice, rate=rate)
+
+    # Initialize communicate object
+    communicate = edge_tts.Communicate(
+        text=text,
+        voice=voice_name,
+        rate=rate_val
+    )
+
     audio_buffer = bytearray()
     async for chunk in communicate.stream():
         if chunk["type"] == "audio":
             audio_buffer.extend(chunk["data"])
-    return bytes(audio_buffer)
 
-def synthesize_gtts_fallback(text: str, voice_key: str, speed_key: str) -> bytes:
-    from gtts import gTTS
-    lang, tld = GTTS_LANG_MAP.get(voice_key, ("en", "co.in"))
-    is_slow = True if speed_key == "0.75x" else False
-    
-    tts = gTTS(text=text, lang=lang, tld=tld, slow=is_slow)
-    fp = io.BytesIO()
-    tts.write_to_fp(fp)
-    fp.seek(0)
-    return fp.read()
+    return bytes(audio_buffer)
 
 def extract_text_from_file(file_storage):
     filename = file_storage.filename.lower()
@@ -101,40 +90,31 @@ def convert_text():
     if not text:
         return jsonify({"error": "No text provided"}), 400
 
+    # Explicit voice matching
     selected_voice = VOICE_MAP.get(voice_key, VOICE_MAP["hi_male"])
     selected_rate = RATE_MAP.get(speed_key, "+0%")
-    audio_data = None
 
-    # 1. Attempt Microsoft Edge Neural Voice
     try:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
             audio_data = loop.run_until_complete(
-                synthesize_edge_tts(text, selected_voice, selected_rate)
+                synthesize_neural_voice(text, selected_voice, selected_rate)
             )
         finally:
             loop.close()
-    except Exception:
-        # Edge returned 403 or handshake failed on cloud IP -> use fallback
-        audio_data = None
 
-    # 2. Seamless Fallback to Indian Voice HTTP Engine if Edge is blocked
-    if not audio_data:
-        try:
-            audio_data = synthesize_gtts_fallback(text, voice_key, speed_key)
-        except Exception as e:
-            return jsonify({"error": f"Speech engine failed: {str(e)}"}), 500
+        if not audio_data:
+            return jsonify({"error": f"Audio engine returned empty stream for voice {selected_voice}."}), 500
 
-    if not audio_data:
-        return jsonify({"error": "Failed to generate audio."}), 500
-
-    return send_file(
-        io.BytesIO(audio_data),
-        mimetype="audio/mpeg",
-        as_attachment=False,
-        download_name="speech.mp3"
-    )
+        return send_file(
+            io.BytesIO(audio_data),
+            mimetype="audio/mpeg",
+            as_attachment=False,
+            download_name="speech.mp3"
+        )
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
