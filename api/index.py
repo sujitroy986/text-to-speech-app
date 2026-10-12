@@ -11,7 +11,6 @@ VOICE_MAP = {
     "hi-IN-SwaraNeural": "hi-IN-SwaraNeural",
     "en-IN-PrabhatNeural": "en-IN-PrabhatNeural",
     "en-IN-NeerjaNeural": "en-IN-NeerjaNeural",
-    # Backward compatibility keys
     "hi_male": "hi-IN-MadhurNeural",
     "hi_female": "hi-IN-SwaraNeural",
     "en_male": "en-IN-PrabhatNeural",
@@ -20,7 +19,14 @@ VOICE_MAP = {
 
 async def synthesize_speech(text: str, voice: str, rate: str) -> bytes:
     import edge_tts
-    communicate = edge_tts.Communicate(text=text, voice=voice, rate=rate)
+    
+    # Instantiate with explicit boundary configurations
+    communicate = edge_tts.Communicate(
+        text=text, 
+        voice=voice, 
+        rate=rate,
+        receive_timeout=15
+    )
     buffer = bytearray()
     async for chunk in communicate.stream():
         if chunk["type"] == "audio":
@@ -93,7 +99,7 @@ def convert_text():
             loop.close()
 
         if not audio_bytes:
-            return jsonify({"error": "Empty audio stream returned from synthesizer."}), 500
+            return jsonify({"error": "Empty audio stream returned."}), 500
 
         return send_file(
             io.BytesIO(audio_bytes),
