@@ -8,115 +8,75 @@ from flask import Flask, request, jsonify, send_file, render_template
 template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'templates'))
 app = Flask(__name__, template_folder=template_dir)
 
-def is_devanagari(text: str) -> bool:
-    """Detects Hindi Devanagari script."""
+def is_hindi(text: str) -> bool:
     return bool(re.search(r'[\u0900-\u097F]', text))
 
-def fetch_male_speech_chunk(sentence: str, is_hi: bool) -> bytes:
-    """Fetches high-quality Indian Male neural audio without punctuation errors."""
-    clean_text = sentence.strip()
+def fetch_male_neural_chunk(text_chunk: str, is_hi: bool) -> bytes:
+    """Fetches genuine Indian Male audio chunk via neural mirrors."""
+    clean_text = text_chunk.strip()
     if not clean_text or len(clean_text) < 2:
         return b""
 
-    male_voice = "hi-IN-MadhurNeural" if is_hi else "en-IN-PrabhatNeural"
-    
-    # Method 1: Direct Edge TTS (Executes reliably when running locally)
+    voice_target = "hi-IN-MadhurNeural" if is_hi else "en-IN-PrabhatNeural"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+    }
+
+    # Gateway 1: Primary Neural Mirror
+    try:
+        url_mirror = "https://tts.cyzon.us/api/tts"
+        payload = {"text": clean_text, "voice": voice_target, "rate": "+0%"}
+        res = requests.post(url_mirror, json=payload, headers=headers, timeout=8)
+        if res.status_code == 200 and len(res.content) > 300:
+            return res.content
+    except Exception:
+        pass
+
+    # Gateway 2: Secondary Neural Audio Relay
+    try:
+        enc = urllib.parse.quote(clean_text)
+        url_bridge = f"https://api.streamelements.com/kappa/v2/speech?voice={voice_target}&text={enc}"
+        res2 = requests.get(url_bridge, headers=headers, timeout=8)
+        if res2.status_code == 200 and len(res2.content) > 300:
+            return res2.content
+    except Exception:
+        pass
+
+    # Gateway 3: Edge-TTS Direct (used during local execution)
     try:
         import asyncio
         import edge_tts
 
         async def _run():
-            comm = edge_tts.Communicate(clean_text, male_voice)
-            buffer = bytearray()
-            async for chunk in comm.stream():
-                if chunk["type"] == "audio":
-                    buffer.extend(chunk["data"])
-            return bytes(buffer)
+            comm = edge_tts.Communicate(clean_text, voice_target)
+            buf = bytearray()
+            async for ch in comm.stream():
+                if ch["type"] == "audio":
+                    buf.extend(ch["data"])
+            return bytes(buf)
 
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
-            audio = loop.run_until_complete(_run())
-            if audio and len(audio) > 400:
-                return audio
+            audio_out = loop.run_until_complete(_run())
+            if audio_out and len(audio_out) > 300:
+                return audio_out
         finally:
             loop.close()
     except Exception:
         pass
 
-    # Method 2: Public Neural Mirror for Cloud/Vercel
-    try:
-        url_mirror = "https://tts.cyzon.us/api/tts"
-        payload = {"text": clean_text, "voice": male_voice, "rate": "+0%"}
-        res = requests.post(
-            url_mirror, 
-            json=payload, 
-            headers={"User-Agent": "Mozilla/5.0"}, 
-            timeout=10
-        )
-        if res.status_code == 200 and len(res.content) > 400:
-            return res.content
-    except Exception:
-        pass
-
-    # Method 3: Regional Indian Audio Endpoint (Clean phrase delivery)
-    try:
-        tl_code = "hi" if is_hi else "en-IN"
-        params = {
-            "ie": "UTF-8",
-            "q": clean_text,
-            "tl": tl_code,
-            "total": "1",
-            "idx": "0",
-            "textlen": str(len(clean_text)),
-            "client": "tw-ob"
-        }
-        url_fb = "https://translate.google.co.in/translate_tts?" + urllib.parse.urlencode(params)
-        res_fb = requests.get(url_fb, headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
-        if res_fb.status_code == 200 and len(res_fb.content) > 300:
-            return res_fb.content
-    except Exception:
-        pass
-
     return b""
 
-def synthesize_entire_document(text: str) -> bytes:
-    """Splits document without punctuation capture tokens to avoid 'dot dot dot'."""
-    is_hi = is_devanagari(text)
-    
-    # Split text cleanly on sentences without capturing punctuation into standalone elements
-    raw_sentences = re.split(r'[।\.\n\?\!]+', text)
-    sentences = [s.strip() for s in raw_sentences if len(s.strip()) > 1]
-
-    combined_audio = bytearray()
-    accumulator = ""
-
-    for sentence in sentences:
-        if len(accumulator) + len(sentence) < 180:
-            accumulator += " " + sentence if accumulator else sentence
-        else:
-            if accumulator:
-                chunk_data = fetch_male_speech_chunk(accumulator, is_hi)
-                if chunk_data:
-                    combined_audio.extend(chunk_data)
-            accumulator = sentence
-
-    if accumulator:
-        chunk_data = fetch_male_speech_chunk(accumulator, is_hi)
-        if chunk_data:
-            combined_audio.extend(chunk_data)
-
-    return bytes(combined_audio)
-
 def extract_document_text(file_storage):
-    """Safely extracts document content on Vercel without closed file errors."""
+    """Safely extracts document content in memory without closed file issues."""
     filename = file_storage.filename.lower()
     raw_bytes = file_storage.read()
     if not raw_bytes:
         return ""
 
-    content = ""
     stream = io.BytesIO(raw_bytes)
+    content = ""
 
     if filename.endswith(".pdf"):
         import pypdf
@@ -132,7 +92,6 @@ def extract_document_text(file_storage):
     elif filename.endswith(".doc"):
         content = "".join([chr(b) for b in raw_bytes if 32 <= b <= 126 or b in (10, 13)])
 
-    # Clean redundant whitespace
     content = re.sub(r'[ \t]+', ' ', content)
     content = re.sub(r'\n+', '\n', content)
     return content.strip()
@@ -168,21 +127,22 @@ def convert_text():
     text = data.get("text", "").strip()
 
     if not text:
-        return jsonify({"error": "Please enter text or upload a document."}), 400
+        return jsonify({"error": "Please enter or upload text."}), 400
 
+    is_hi = is_hindi(text)
     try:
-        audio_data = synthesize_entire_document(text)
-        if not audio_data:
-            return jsonify({"error": "Speech generation failed. Please try again."}), 500
+        audio_chunk = fetch_male_neural_chunk(text, is_hi)
+        if not audio_chunk:
+            return jsonify({"error": "Failed to synthesize speech chunk."}), 500
 
         return send_file(
-            io.BytesIO(audio_data),
+            io.BytesIO(audio_chunk),
             mimetype="audio/mpeg",
             as_attachment=False,
-            download_name="indian_male_speech.mp3"
+            download_name="chunk.mp3"
         )
     except Exception as e:
-        return jsonify({"error": f"Speech conversion failed: {str(e)}"}), 500
+        return jsonify({"error": f"Synthesis error: {str(e)}"}), 500
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)

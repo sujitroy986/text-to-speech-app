@@ -14,9 +14,7 @@
       --card-border: rgba(56, 189, 248, 0.12);
       --card-glow: rgba(37, 99, 235, 0.14);
       --primary: #2563eb;
-      --primary-hover: #1d4ed8;
       --accent: #38bdf8;
-      --accent-glow: rgba(56, 189, 248, 0.4);
       --text-main: #f8fafc;
       --text-muted: #94a3b8;
       --text-dim: #64748b;
@@ -123,7 +121,7 @@
       100% { opacity: 0.8; transform: translateX(-50%) scale(1.08); }
     }
 
-    /* Top Brand Navigation */
+    /* Top Navigation */
     .navbar {
       width: 100%;
       border-bottom: 1px solid var(--card-border);
@@ -152,6 +150,7 @@
       background: linear-gradient(135deg, #ffffff 15%, #bae6fd 50%, #38bdf8 85%, #60a5fa 100%);
       background-size: 200% auto;
       -webkit-background-clip: text;
+      background-clip: text;
       -webkit-text-fill-color: transparent;
       animation: titleShimmer 7s ease-in-out infinite alternate;
       filter: drop-shadow(0 0 14px rgba(56, 189, 248, 0.55))
@@ -159,17 +158,11 @@
     }
 
     @keyframes titleShimmer {
-      0% {
-        background-position: 0% 50%;
-        filter: drop-shadow(0 0 12px rgba(56, 189, 248, 0.5)) drop-shadow(0 0 25px rgba(37, 99, 235, 0.35));
-      }
-      100% {
-        background-position: 100% 50%;
-        filter: drop-shadow(0 0 20px rgba(56, 189, 248, 0.8)) drop-shadow(0 0 40px rgba(59, 130, 246, 0.6));
-      }
+      0% { background-position: 0% 50%; }
+      100% { background-position: 100% 50%; }
     }
 
-    /* Central Workspace */
+    /* Central Layout */
     .app-container {
       width: 100%;
       max-width: 920px;
@@ -194,6 +187,7 @@
       margin-bottom: 4px;
       background: linear-gradient(135deg, #ffffff 30%, #7dd3fc 75%, #38bdf8 100%);
       -webkit-background-clip: text;
+      background-clip: text;
       -webkit-text-fill-color: transparent;
       filter: drop-shadow(0 0 14px rgba(56, 189, 248, 0.35))
               drop-shadow(0 0 30px rgba(37, 99, 235, 0.2));
@@ -205,10 +199,9 @@
       font-weight: 400;
       line-height: 1.4;
       letter-spacing: 0.01em;
-      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
     }
 
-    /* Main Modern Glass Card */
+    /* Studio Card */
     .studio-card {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
@@ -232,7 +225,6 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      flex-wrap: wrap;
     }
 
     .input-pill {
@@ -310,7 +302,6 @@
       display: none;
     }
 
-    /* Editor Canvas */
     .editor-wrapper {
       position: relative;
       border-radius: 14px;
@@ -385,7 +376,6 @@
       stroke: currentColor;
     }
 
-    /* Waveform Pulse Strip */
     .visualizer-strip {
       display: none;
       align-items: center;
@@ -420,7 +410,6 @@
       100% { height: 18px; opacity: 1; box-shadow: 0 0 10px rgba(56, 189, 248, 0.9); }
     }
 
-    /* Player Container */
     .player-section {
       margin-top: 10px;
       display: flex;
@@ -435,7 +424,6 @@
       filter: invert(0.92) hue-rotate(180deg);
     }
 
-    /* Button Action Row */
     .action-bar {
       margin-top: 12px;
       display: flex;
@@ -531,7 +519,7 @@
       text-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
     }
 
-    /* Redesigned & Enlarged Modern Footer */
+    /* Enlarged Attribution Footer */
     .footer {
       border-top: 1px solid var(--card-border);
       background: rgba(6, 8, 14, 0.88);
@@ -547,7 +535,7 @@
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      font-size: 1.05rem; /* Increased size as requested */
+      font-size: 1.05rem;
       font-weight: 500;
       color: #94a3b8;
       letter-spacing: 0.02em;
@@ -559,6 +547,7 @@
       letter-spacing: 0.03em;
       background: linear-gradient(135deg, #ffffff 40%, #7dd3fc 85%, #38bdf8 100%);
       -webkit-background-clip: text;
+      background-clip: text;
       -webkit-text-fill-color: transparent;
       filter: drop-shadow(0 0 10px rgba(56, 189, 248, 0.4));
     }
@@ -685,11 +674,6 @@
 
   <script>
     let currentAudioBlob = null;
-    let audioCtx = null;
-    let sourceNode = null;
-    let lowshelfNode = null;
-    let lowpassNode = null;
-
     const textInput = document.getElementById('text-input');
     const convertBtn = document.getElementById('convert-btn');
     const convertBtnText = document.getElementById('convert-btn-text');
@@ -723,7 +707,7 @@
       statusMsg.textContent = 'Playback completed.';
     });
 
-    // File Upload Handler
+    // File Upload Handler via Backend Extract API
     fileInput.addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -774,31 +758,23 @@
       textInput.focus();
     });
 
-    function setupMaleResonance() {
-      if (!audioCtx) {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        if (AudioContext) {
-          audioCtx = new AudioContext();
-          sourceNode = audioCtx.createMediaElementSource(audioPlayer);
-          
-          lowshelfNode = audioCtx.createBiquadFilter();
-          lowshelfNode.type = "lowshelf";
-          lowshelfNode.frequency.value = 240;
-          lowshelfNode.gain.value = 10.0;
+    // Natural text chunking to prevent Vercel execution timeouts
+    function splitTextForSynthesis(text, maxLen = 150) {
+      const rawSentences = text.split(/([।\.\n\?\!]+)/);
+      const chunks = [];
+      let temp = "";
 
-          lowpassNode = audioCtx.createBiquadFilter();
-          lowpassNode.type = "lowpass";
-          lowpassNode.frequency.value = 3200;
-
-          sourceNode.connect(lowshelfNode);
-          lowshelfNode.connect(lowpassNode);
-          lowpassNode.connect(audioCtx.destination);
+      for (let s of rawSentences) {
+        if (!s) continue;
+        if ((temp + s).length <= maxLen) {
+          temp += s;
+        } else {
+          if (temp.trim()) chunks.push(temp.trim());
+          temp = s;
         }
       }
-
-      if (audioCtx && audioCtx.state === 'suspended') {
-        audioCtx.resume();
-      }
+      if (temp.trim()) chunks.push(temp.trim());
+      return chunks.filter(c => c.length > 1);
     }
 
     convertBtn.addEventListener('click', async () => {
@@ -808,8 +784,9 @@
         return;
       }
 
-      const speed = speedSelect.value;
-      statusMsg.textContent = 'Synthesizing audio... Please wait.';
+      const chunks = splitTextForSynthesis(text);
+      if (!chunks.length) return;
+
       convertBtn.disabled = true;
       downloadBtn.disabled = true;
       micIcon.style.display = 'none';
@@ -817,29 +794,37 @@
       convertBtnText.textContent = 'Synthesizing...';
 
       try {
-        const response = await fetch('/api/convert', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: text, speed: speed })
-        });
+        const audioParts = [];
 
-        if (!response.ok) {
-          let errorText = 'Synthesis error';
-          try {
-            const errData = await response.json();
-            errorText = errData.error || errorText;
-          } catch (_) {
-            errorText = await response.text();
+        for (let i = 0; i < chunks.length; i++) {
+          statusMsg.textContent = `Synthesizing chunk ${i + 1} of ${chunks.length}...`;
+          const resp = await fetch('/api/convert', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: chunks[i] })
+          });
+
+          if (!resp.ok) {
+            let errDetail = 'Failed on chunk synthesis';
+            try {
+              const j = await resp.json();
+              errDetail = j.error || errDetail;
+            } catch (_) {
+              errDetail = await resp.text();
+            }
+            throw new Error(errDetail);
           }
-          throw new Error(errorText);
+
+          const blobChunk = await resp.blob();
+          const buffer = await blobChunk.arrayBuffer();
+          audioParts.push(buffer);
         }
 
-        currentAudioBlob = await response.blob();
+        currentAudioBlob = new Blob(audioParts, { type: 'audio/mpeg' });
         const audioUrl = URL.createObjectURL(currentAudioBlob);
 
         audioPlayer.src = audioUrl;
-        setupMaleResonance();
-        audioPlayer.playbackRate = parseFloat(speed) || 1.0;
+        audioPlayer.playbackRate = parseFloat(speedSelect.value) || 1.0;
         audioPlayer.style.display = 'block';
         audioPlayer.play();
 
@@ -863,7 +848,7 @@
 
     downloadBtn.addEventListener('click', async () => {
       if (!currentAudioBlob) return;
-      const fileName = 'aksingh_speech_audio.mp3';
+      const fileName = 'aksingh_indian_male_speech.mp3';
 
       if ('showSaveFilePicker' in window) {
         try {
