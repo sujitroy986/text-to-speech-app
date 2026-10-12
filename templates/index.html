@@ -641,7 +641,7 @@
       const file = e.target.files[0];
       if (!file) return;
 
-      statusMsg.textContent = `Processing document: ${file.name}...`;
+      statusMsg.textContent = `Reading ${file.name}... Please wait.`;
       const formData = new FormData();
       formData.append('file', file);
 
@@ -665,7 +665,7 @@
         const data = await response.json();
         textInput.value = data.text;
         updateCounter();
-        statusMsg.textContent = `Successfully loaded ${file.name}`;
+        statusMsg.textContent = `Successfully imported: ${file.name}`;
       } catch (err) {
         statusMsg.textContent = `Upload Error: ${err.message}`;
       } finally {
@@ -687,8 +687,7 @@
       textInput.focus();
     });
 
-    // Acoustic male vocal resonance
-    function applyMaleVoiceAcoustics() {
+    function setupMaleResonance() {
       if (!audioCtx) {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         if (AudioContext) {
@@ -697,12 +696,12 @@
           
           lowshelfNode = audioCtx.createBiquadFilter();
           lowshelfNode.type = "lowshelf";
-          lowshelfNode.frequency.value = 250;
-          lowshelfNode.gain.value = 11.0;
+          lowshelfNode.frequency.value = 240;
+          lowshelfNode.gain.value = 10.0;
 
           lowpassNode = audioCtx.createBiquadFilter();
           lowpassNode.type = "lowpass";
-          lowpassNode.frequency.value = 3000;
+          lowpassNode.frequency.value = 3200;
 
           sourceNode.connect(lowshelfNode);
           lowshelfNode.connect(lowpassNode);
@@ -752,7 +751,7 @@
         const audioUrl = URL.createObjectURL(currentAudioBlob);
 
         audioPlayer.src = audioUrl;
-        applyMaleVoiceAcoustics();
+        setupMaleResonance();
         audioPlayer.playbackRate = parseFloat(speed) || 1.0;
         audioPlayer.style.display = 'block';
         audioPlayer.play();
