@@ -7,35 +7,25 @@ template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'te
 app = Flask(__name__, template_folder=template_dir)
 
 VOICE_MAP = {
+    "hi-IN-MadhurNeural": "hi-IN-MadhurNeural",
+    "hi-IN-SwaraNeural": "hi-IN-SwaraNeural",
+    "en-IN-PrabhatNeural": "en-IN-PrabhatNeural",
+    "en-IN-NeerjaNeural": "en-IN-NeerjaNeural",
+    # Backward compatibility keys
     "hi_male": "hi-IN-MadhurNeural",
     "hi_female": "hi-IN-SwaraNeural",
     "en_male": "en-IN-PrabhatNeural",
     "en_female": "en-IN-NeerjaNeural",
 }
 
-RATE_MAP = {
-    "0.75x": "-25%",
-    "1.0x": "+0%",
-    "1.25x": "+25%",
-    "1.5x": "+50%"
-}
-
-async def synthesize_neural_voice(text: str, voice_name: str, rate_val: str) -> bytes:
+async def synthesize_speech(text: str, voice: str, rate: str) -> bytes:
     import edge_tts
-
-    # Initialize communicate object
-    communicate = edge_tts.Communicate(
-        text=text,
-        voice=voice_name,
-        rate=rate_val
-    )
-
-    audio_buffer = bytearray()
+    communicate = edge_tts.Communicate(text=text, voice=voice, rate=rate)
+    buffer = bytearray()
     async for chunk in communicate.stream():
         if chunk["type"] == "audio":
-            audio_buffer.extend(chunk["data"])
-
-    return bytes(audio_buffer)
+            buffer.extend(chunk["data"])
+    return bytes(buffer)
 
 def extract_text_from_file(file_storage):
     filename = file_storage.filename.lower()
@@ -44,13 +34,13 @@ def extract_text_from_file(file_storage):
         import pypdf
         reader = pypdf.PdfReader(file_storage.stream)
         for page in reader.pages:
-            text = page.extract_text()
-            if text:
-                content += text + "\n"
+            t = page.extract_text()
+            if t:
+                content += t + "\n"
     elif filename.endswith(".docx"):
         import docx
         doc = docx.Document(file_storage.stream)
-        content = "\n".join([para.text for para in doc.paragraphs if para.text])
+        content = "\n".join([p.text for p in doc.paragraphs if p.text])
     elif filename.endswith(".doc"):
         raw = file_storage.read()
         content = "".join([chr(b) for b in raw if 32 <= b <= 126 or b in (10, 13)])
@@ -64,16 +54,16 @@ def index():
 def extract_text():
     if 'file' not in request.files:
         return jsonify({"error": "No file uploaded"}), 400
-    file = request.files['file']
-    if not file or not file.filename:
+    f = request.files['file']
+    if not f or not f.filename:
         return jsonify({"error": "Empty file selection"}), 400
     
-    filename = file.filename.lower()
-    if not (filename.endswith('.pdf') or filename.endswith('.docx') or filename.endswith('.doc')):
+    fname = f.filename.lower()
+    if not (fname.endswith('.pdf') or fname.endswith('.docx') or fname.endswith('.doc')):
         return jsonify({"error": "Only PDF, DOC, and DOCX files are supported."}), 400
 
     try:
-        extracted = extract_text_from_file(file)
+        extracted = extract_text_from_file(f)
         if not extracted:
             return jsonify({"error": "No readable text found in document."}), 400
         return jsonify({"text": extracted})
@@ -84,31 +74,29 @@ def extract_text():
 def convert_text():
     data = request.get_json(silent=True) or {}
     text = data.get("text", "").strip()
-    voice_key = data.get("voice", "hi_male").lower()
-    speed_key = data.get("speed", "1.0x").lower()
+    voice_param = data.get("voice", "hi-IN-MadhurNeural")
+    speed_param = data.get("speed", "+0%")
 
     if not text:
         return jsonify({"error": "No text provided"}), 400
 
-    # Explicit voice matching
-    selected_voice = VOICE_MAP.get(voice_key, VOICE_MAP["hi_male"])
-    selected_rate = RATE_MAP.get(speed_key, "+0%")
+    selected_voice = VOICE_MAP.get(voice_param, "hi-IN-MadhurNeural")
 
     try:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
-            audio_data = loop.run_until_complete(
-                synthesize_neural_voice(text, selected_voice, selected_rate)
+            audio_bytes = loop.run_until_complete(
+                synthesize_speech(text, selected_voice, speed_param)
             )
         finally:
             loop.close()
 
-        if not audio_data:
-            return jsonify({"error": f"Audio engine returned empty stream for voice {selected_voice}."}), 500
+        if not audio_bytes:
+            return jsonify({"error": "Empty audio stream returned from synthesizer."}), 500
 
         return send_file(
-            io.BytesIO(audio_data),
+            io.BytesIO(audio_bytes),
             mimetype="audio/mpeg",
             as_attachment=False,
             download_name="speech.mp3"
