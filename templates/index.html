@@ -220,13 +220,8 @@
       background: rgba(255, 255, 255, 0.035);
       border: 1px solid var(--card-border);
       border-radius: 10px;
-      padding: 5px 11px;
+      padding: 5px 12px;
       transition: all 0.2s ease;
-    }
-
-    .input-pill:hover, .input-pill:focus-within {
-      border-color: rgba(56, 189, 248, 0.4);
-      background: rgba(255, 255, 255, 0.06);
     }
 
     .input-pill label {
@@ -235,6 +230,15 @@
       color: var(--accent);
       text-transform: uppercase;
       letter-spacing: 0.05em;
+    }
+
+    .input-pill .voice-label {
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 5px;
     }
 
     .input-pill select {
@@ -512,11 +516,8 @@
       <div class="studio-header">
         <div class="control-cluster">
           <div class="input-pill">
-            <label for="voice-select">Voice</label>
-            <select id="voice-select">
-              <option value="male" selected>Male (Indian Accent)</option>
-              <option value="female">Female (Indian Accent)</option>
-            </select>
+            <label>Voice</label>
+            <span class="voice-label">🇮🇳 Indian Male</span>
           </div>
 
           <div class="input-pill">
@@ -604,6 +605,11 @@
 
   <script>
     let currentAudioBlob = null;
+    let audioCtx = null;
+    let sourceNode = null;
+    let lowshelfNode = null;
+    let lowpassNode = null;
+
     const textInput = document.getElementById('text-input');
     const convertBtn = document.getElementById('convert-btn');
     const convertBtnText = document.getElementById('convert-btn-text');
@@ -614,7 +620,6 @@
     const audioPlayer = document.getElementById('audio-player');
     const statusMsg = document.getElementById('status');
     const fileInput = document.getElementById('file-input');
-    const voiceSelect = document.getElementById('voice-select');
     const speedSelect = document.getElementById('speed-select');
     const charWordCount = document.getElementById('char-word-count');
     const visualizer = document.getElementById('visualizer');
@@ -682,6 +687,34 @@
       textInput.focus();
     });
 
+    // Acoustic male vocal resonance
+    function applyMaleVoiceAcoustics() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) {
+          audioCtx = new AudioContext();
+          sourceNode = audioCtx.createMediaElementSource(audioPlayer);
+          
+          lowshelfNode = audioCtx.createBiquadFilter();
+          lowshelfNode.type = "lowshelf";
+          lowshelfNode.frequency.value = 250;
+          lowshelfNode.gain.value = 11.0;
+
+          lowpassNode = audioCtx.createBiquadFilter();
+          lowpassNode.type = "lowpass";
+          lowpassNode.frequency.value = 3000;
+
+          sourceNode.connect(lowshelfNode);
+          lowshelfNode.connect(lowpassNode);
+          lowpassNode.connect(audioCtx.destination);
+        }
+      }
+
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
     convertBtn.addEventListener('click', async () => {
       const text = textInput.value.trim();
       if (!text) {
@@ -689,11 +722,8 @@
         return;
       }
 
-      const voice = voiceSelect.value;
       const speed = speedSelect.value;
-      const selectedVoiceLabel = voiceSelect.options[voiceSelect.selectedIndex].text;
-
-      statusMsg.textContent = `Synthesizing authentic ${selectedVoiceLabel}... Please wait.`;
+      statusMsg.textContent = 'Synthesizing authentic Indian Male voice... Please wait.';
       convertBtn.disabled = true;
       downloadBtn.disabled = true;
       micIcon.style.display = 'none';
@@ -704,7 +734,7 @@
         const response = await fetch('/api/convert', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: text, voice: voice, speed: speed })
+          body: JSON.stringify({ text: text, speed: speed })
         });
 
         if (!response.ok) {
@@ -722,12 +752,13 @@
         const audioUrl = URL.createObjectURL(currentAudioBlob);
 
         audioPlayer.src = audioUrl;
+        applyMaleVoiceAcoustics();
         audioPlayer.playbackRate = parseFloat(speed) || 1.0;
         audioPlayer.style.display = 'block';
         audioPlayer.play();
 
         downloadBtn.disabled = false;
-        statusMsg.textContent = `Playing authentic ${selectedVoiceLabel}!`;
+        statusMsg.textContent = 'Playing Indian Male voice!';
       } catch (err) {
         statusMsg.textContent = 'Error: ' + err.message;
       } finally {
@@ -746,7 +777,7 @@
 
     downloadBtn.addEventListener('click', async () => {
       if (!currentAudioBlob) return;
-      const fileName = `aksingh_${voiceSelect.value}_indian_voice.mp3`;
+      const fileName = 'aksingh_indian_male_speech.mp3';
 
       if ('showSaveFilePicker' in window) {
         try {
