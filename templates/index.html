@@ -20,13 +20,8 @@
       --danger: #ef4444;
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
-    /* Fixed 100vh canvas: no scrollbars */
     html, body {
       height: 100vh;
       max-height: 100vh;
@@ -154,14 +149,8 @@
     }
 
     @keyframes titleShimmer {
-      0% {
-        background-position: 0% 50%;
-        filter: drop-shadow(0 0 12px rgba(56, 189, 248, 0.5)) drop-shadow(0 0 25px rgba(37, 99, 235, 0.35));
-      }
-      100% {
-        background-position: 100% 50%;
-        filter: drop-shadow(0 0 20px rgba(56, 189, 248, 0.8)) drop-shadow(0 0 40px rgba(59, 130, 246, 0.6));
-      }
+      0% { background-position: 0% 50%; filter: drop-shadow(0 0 12px rgba(56, 189, 248, 0.5)) drop-shadow(0 0 25px rgba(37, 99, 235, 0.35)); }
+      100% { background-position: 100% 50%; filter: drop-shadow(0 0 20px rgba(56, 189, 248, 0.8)) drop-shadow(0 0 40px rgba(59, 130, 246, 0.6)); }
     }
 
     .app-container {
@@ -176,10 +165,7 @@
       justify-content: center;
     }
 
-    .header-section {
-      text-align: center;
-      margin-bottom: 12px;
-    }
+    .header-section { text-align: center; margin-bottom: 12px; }
 
     .header-section h2 {
       font-size: 1.75rem;
@@ -189,8 +175,7 @@
       background: linear-gradient(135deg, #ffffff 30%, #7dd3fc 75%, #38bdf8 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      filter: drop-shadow(0 0 14px rgba(56, 189, 248, 0.4))
-              drop-shadow(0 0 30px rgba(37, 99, 235, 0.25));
+      filter: drop-shadow(0 0 14px rgba(56, 189, 248, 0.4)) drop-shadow(0 0 30px rgba(37, 99, 235, 0.25));
     }
 
     .header-section p {
@@ -289,17 +274,8 @@
       transform: translateY(-1px);
     }
 
-    .upload-btn svg {
-      width: 15px;
-      height: 15px;
-      stroke: currentColor;
-      fill: none;
-      stroke-width: 2;
-    }
-
-    #file-input {
-      display: none;
-    }
+    .upload-btn svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; }
+    #file-input { display: none; }
 
     .editor-wrapper {
       position: relative;
@@ -329,10 +305,7 @@
       font-family: inherit;
     }
 
-    .editor-textarea::placeholder {
-      color: var(--text-dim);
-      font-weight: 400;
-    }
+    .editor-textarea::placeholder { color: var(--text-dim); font-weight: 400; }
 
     .editor-footer {
       display: flex;
@@ -345,11 +318,7 @@
       border-bottom-right-radius: 12px;
     }
 
-    .meta-counter {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.74rem;
-      color: var(--text-dim);
-    }
+    .meta-counter { font-family: 'JetBrains Mono', monospace; font-size: 0.74rem; color: var(--text-dim); }
 
     .clear-action {
       background: transparent;
@@ -364,15 +333,8 @@
       transition: color 0.2s ease;
     }
 
-    .clear-action:hover {
-      color: var(--danger);
-    }
-
-    .clear-action svg {
-      width: 13px;
-      height: 13px;
-      stroke: currentColor;
-    }
+    .clear-action:hover { color: var(--danger); }
+    .clear-action svg { width: 13px; height: 13px; stroke: currentColor; }
 
     .visualizer-strip {
       display: none;
@@ -383,9 +345,7 @@
       margin: 8px 0 2px;
     }
 
-    .visualizer-strip.active {
-      display: flex;
-    }
+    .visualizer-strip.active { display: flex; }
 
     .wave-bar {
       width: 3px;
@@ -408,7 +368,6 @@
       100% { height: 16px; opacity: 1; box-shadow: 0 0 8px rgba(56, 189, 248, 0.8); }
     }
 
-    /* Player Container */
     .player-section {
       margin-top: 10px;
       display: flex;
@@ -476,13 +435,7 @@
       box-shadow: none !important;
     }
 
-    .pro-btn svg {
-      width: 16px;
-      height: 16px;
-      fill: none;
-      stroke: currentColor;
-      stroke-width: 2.2;
-    }
+    .pro-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.2; }
 
     .spinner {
       animation: rotate 1s linear infinite;
@@ -491,16 +444,9 @@
       height: 16px;
     }
 
-    .spinner .path {
-      stroke: #ffffff;
-      stroke-linecap: round;
-      animation: dash 1.5s ease-in-out infinite;
-    }
+    .spinner .path { stroke: #ffffff; stroke-linecap: round; animation: dash 1.5s ease-in-out infinite; }
 
-    @keyframes rotate {
-      100% { transform: rotate(360deg); }
-    }
-
+    @keyframes rotate { 100% { transform: rotate(360deg); } }
     @keyframes dash {
       0% { stroke-dasharray: 1, 150; stroke-dashoffset: 0; }
       50% { stroke-dasharray: 90, 150; stroke-dashoffset: -35; }
@@ -527,9 +473,7 @@
       z-index: 2;
     }
 
-    .footer strong {
-      color: var(--text-muted);
-    }
+    .footer strong { color: var(--text-muted); }
 
     @media (max-height: 720px) {
       .editor-textarea { height: 150px; }
@@ -622,12 +566,10 @@
         <div class="wave-bar"></div>
       </div>
 
-      <!-- HTML5 Audio Player -->
       <div class="player-section">
         <audio id="audio-player" controls style="display: none;"></audio>
       </div>
 
-      <!-- Actions Bar -->
       <div class="action-bar">
         <button id="download-btn" class="pro-btn pro-btn-secondary" disabled>
           <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
@@ -690,7 +632,6 @@
     audioPlayer.addEventListener('pause', () => visualizer.classList.remove('active'));
     audioPlayer.addEventListener('ended', () => visualizer.classList.remove('active'));
 
-    // Document File Upload
     fileInput.addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -752,7 +693,7 @@
       const speed = speedSelect.value;
       const selectedVoiceLabel = voiceSelect.options[voiceSelect.selectedIndex].text;
 
-      statusMsg.textContent = `Synthesizing ${selectedVoiceLabel}... Please wait.`;
+      statusMsg.textContent = `Synthesizing authentic ${selectedVoiceLabel}... Please wait.`;
       convertBtn.disabled = true;
       downloadBtn.disabled = true;
       micIcon.style.display = 'none';
@@ -781,11 +722,12 @@
         const audioUrl = URL.createObjectURL(currentAudioBlob);
 
         audioPlayer.src = audioUrl;
+        audioPlayer.playbackRate = parseFloat(speed) || 1.0;
         audioPlayer.style.display = 'block';
         audioPlayer.play();
 
         downloadBtn.disabled = false;
-        statusMsg.textContent = `Playing ${selectedVoiceLabel}!`;
+        statusMsg.textContent = `Playing authentic ${selectedVoiceLabel}!`;
       } catch (err) {
         statusMsg.textContent = 'Error: ' + err.message;
       } finally {
@@ -796,9 +738,15 @@
       }
     });
 
+    speedSelect.addEventListener('change', () => {
+      if (audioPlayer && audioPlayer.src) {
+        audioPlayer.playbackRate = parseFloat(speedSelect.value) || 1.0;
+      }
+    });
+
     downloadBtn.addEventListener('click', async () => {
       if (!currentAudioBlob) return;
-      const fileName = `aksingh_${voiceSelect.value}_indian_speech.mp3`;
+      const fileName = `aksingh_${voiceSelect.value}_indian_voice.mp3`;
 
       if ('showSaveFilePicker' in window) {
         try {

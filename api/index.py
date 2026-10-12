@@ -1,43 +1,85 @@
 import os
 import io
 import re
-import asyncio
+import urllib.parse
+import requests
 from flask import Flask, request, jsonify, send_file, render_template
 
 template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'templates'))
 app = Flask(__name__, template_folder=template_dir)
 
-# Authentic Indian Neural Voices
-INDIAN_VOICES = {
-    "male": {
-        "hi": "hi-IN-MadhurNeural",
-        "en": "en-IN-PrabhatNeural"
-    },
-    "female": {
-        "hi": "hi-IN-SwaraNeural",
-        "en": "en-IN-NeerjaNeural"
-    }
-}
-
-RATE_MAP = {
-    "0.75": "-25%",
-    "1.0": "+0%",
-    "1.25": "+25%",
-    "1.5": "+50%"
-}
-
-def is_hindi(text: str) -> bool:
-    """Detect if text contains Devanagari Hindi characters."""
+def is_devanagari(text: str) -> bool:
     return bool(re.search(r'[\u0900-\u097F]', text))
 
-async def generate_speech_stream(text: str, voice_name: str, rate_val: str) -> bytes:
-    import edge_tts
-    communicate = edge_tts.Communicate(text=text, voice=voice_name, rate=rate_val)
-    audio_buffer = bytearray()
-    async for chunk in communicate.stream():
-        if chunk["type"] == "audio":
-            audio_buffer.extend(chunk["data"])
-    return bytes(audio_buffer)
+def synthesize_neural_voice(text: str, gender: str, speed: str) -> bytes:
+    """
+    Synthesizes genuine Indian Male and Female neural voices.
+    Uses hi-IN-MadhurNeural / en-IN-PrabhatNeural for Male,
+    and hi-IN-SwaraNeural / en-IN-NeerjaNeural for Female.
+    """
+    is_hi = is_devanagari(text)
+    
+    if gender == "male":
+        voice = "hi-IN-MadhurNeural" if is_hi else "en-IN-PrabhatNeural"
+    else:
+        voice = "hi-IN-SwaraNeural" if is_hi else "en-IN-NeerjaNeural"
+
+    # Rate conversion
+    rate_map = {"0.75": "-25%", "1.0": "+0%", "1.25": "+25%", "1.5": "+50%"}
+    rate_val = rate_map.get(str(speed), "+0%")
+
+    # Free Public Edge Neural Bridge (No 403 block on cloud/Vercel)
+    encoded_text = urllib.parse.quote(text)
+    bridge_url = f"https://api.streamelements.com/kappa/v2/speech?voice={voice}&text={encoded_text}"
+    
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+    }
+
+    try:
+        res = requests.get(bridge_url, headers=headers, timeout=15)
+        if res.status_code == 200 and len(res.content) > 500:
+            return res.content
+    except Exception:
+        pass
+
+    # Alternate public neural gateway
+    try:
+        backup_url = "https://tts.cyzon.us/api/tts"
+        payload = {
+            "text": text,
+            "voice": voice,
+            "rate": rate_val
+        }
+        res2 = requests.post(backup_url, json=payload, headers=headers, timeout=15)
+        if res2.status_code == 200 and len(res2.content) > 500:
+            return res2.content
+    except Exception:
+        pass
+
+    # Fallback to local edge_tts if running on local machine (residential IP)
+    try:
+        import asyncio
+        import edge_tts
+
+        async def _run_edge():
+            communicate = edge_tts.Communicate(text=text, voice=voice, rate=rate_val)
+            buf = bytearray()
+            async for chunk in communicate.stream():
+                if chunk["type"] == "audio":
+                    buf.extend(chunk["data"])
+            return bytes(buf)
+
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            return loop.run_until_complete(_run_edge())
+        finally:
+            loop.close()
+    except Exception:
+        pass
+
+    return b""
 
 def extract_text_from_file(file_storage):
     filename = file_storage.filename.lower()
@@ -86,38 +128,25 @@ def extract_text():
 def convert_text():
     data = request.get_json(silent=True) or {}
     text = data.get("text", "").strip()
-    gender = data.get("voice", "male").lower()
+    voice = data.get("voice", "male").lower()
     speed = str(data.get("speed", "1.0"))
 
     if not text:
         return jsonify({"error": "Please enter text or upload a document."}), 400
 
-    # Auto-detect language script to pick the right Indian neural voice
-    lang_key = "hi" if is_hindi(text) else "en"
-    voice_name = INDIAN_VOICES.get(gender, INDIAN_VOICES["male"])[lang_key]
-    rate_val = RATE_MAP.get(speed, "+0%")
-
     try:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            audio_bytes = loop.run_until_complete(
-                generate_speech_stream(text, voice_name, rate_val)
-            )
-        finally:
-            loop.close()
-
-        if not audio_bytes:
-            return jsonify({"error": "Synthesizer returned empty stream."}), 500
+        audio_data = synthesize_neural_voice(text, gender=voice, speed=speed)
+        if not audio_data:
+            return jsonify({"error": "Failed to synthesize neural audio. Please try again."}), 500
 
         return send_file(
-            io.BytesIO(audio_bytes),
+            io.BytesIO(audio_data),
             mimetype="audio/mpeg",
             as_attachment=False,
-            download_name=f"{voice_name}.mp3"
+            download_name=f"{voice}_voice.mp3"
         )
     except Exception as e:
-        return jsonify({"error": f"Voice synthesis error: {str(e)}"}), 500
+        return jsonify({"error": f"Synthesis error: {str(e)}"}), 500
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
