@@ -665,7 +665,7 @@
         const data = await response.json();
         textInput.value = data.text;
         updateCounter();
-        statusMsg.textContent = `Successfully imported: ${file.name}`;
+        statusMsg.textContent = `Imported: ${file.name}`;
       } catch (err) {
         statusMsg.textContent = `Upload Error: ${err.message}`;
       } finally {
@@ -696,8 +696,8 @@
           
           lowshelfNode = audioCtx.createBiquadFilter();
           lowshelfNode.type = "lowshelf";
-          lowshelfNode.frequency.value = 240;
-          lowshelfNode.gain.value = 10.0;
+          lowshelfNode.frequency.value = 250;
+          lowshelfNode.gain.value = 12.0;
 
           lowpassNode = audioCtx.createBiquadFilter();
           lowpassNode.type = "lowpass";
@@ -727,7 +727,7 @@
       downloadBtn.disabled = true;
       micIcon.style.display = 'none';
       spinnerIcon.style.display = 'inline-block';
-      convertBtnText.textContent = 'Processing...';
+      convertBtnText.textContent = 'Synthesizing...';
 
       try {
         const response = await fetch('/api/convert', {
