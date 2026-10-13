@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   
-  <!-- In-browser document extractors -->
+  <!-- Client-side Document Extractors -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 
@@ -27,11 +27,7 @@
       --glass-surface: rgba(255, 255, 255, 0.035);
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     html, body {
       height: 100vh;
@@ -467,13 +463,7 @@
       box-shadow: none !important;
     }
 
-    .pro-btn svg {
-      width: 17px;
-      height: 17px;
-      fill: none;
-      stroke: currentColor;
-      stroke-width: 2.2;
-    }
+    .pro-btn svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 2.2; }
 
     .spinner {
       animation: rotate 1s linear infinite;
@@ -482,11 +472,7 @@
       height: 16px;
     }
 
-    .spinner .path {
-      stroke: #ffffff;
-      stroke-linecap: round;
-      animation: dash 1.5s ease-in-out infinite;
-    }
+    .spinner .path { stroke: #ffffff; stroke-linecap: round; animation: dash 1.5s ease-in-out infinite; }
 
     @keyframes rotate { 100% { transform: rotate(360deg); } }
     @keyframes dash {
@@ -699,7 +685,7 @@
       statusMsg.textContent = 'Playback completed.';
     });
 
-    // In-browser Document Parsing: No server stream timeout or closed file errors
+    // Client-side extraction: Instantaneous, zero upload timeout on Vercel
     fileInput.addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -759,8 +745,8 @@
       textInput.focus();
     });
 
-    // Sentence splitting to ensure rapid chunk processing without timeouts
-    function splitTextForSynthesis(text, maxLen = 150) {
+    // Chunk text by natural sentence stops (< 140 chars per chunk)
+    function splitTextForSynthesis(text, maxLen = 140) {
       const rawSentences = text.split(/([।\.\n\?\!]+)/);
       const chunks = [];
       let temp = "";
