@@ -7,6 +7,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- In-browser document extractors -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+
   <style>
     :root {
       --bg-dark: #06080e;
@@ -44,7 +49,6 @@
       position: relative;
     }
 
-    /* Ambient Spatial Backdrops */
     .animated-bg {
       position: fixed;
       top: 0;
@@ -121,7 +125,6 @@
       100% { opacity: 0.8; transform: translateX(-50%) scale(1.08); }
     }
 
-    /* Top Navigation */
     .navbar {
       width: 100%;
       border-bottom: 1px solid var(--card-border);
@@ -162,7 +165,6 @@
       100% { background-position: 100% 50%; }
     }
 
-    /* Central Layout */
     .app-container {
       width: 100%;
       max-width: 920px;
@@ -201,7 +203,6 @@
       letter-spacing: 0.01em;
     }
 
-    /* Studio Card */
     .studio-card {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
@@ -298,9 +299,7 @@
       stroke-width: 2.2;
     }
 
-    #file-input {
-      display: none;
-    }
+    #file-input { display: none; }
 
     .editor-wrapper {
       position: relative;
@@ -366,15 +365,8 @@
       transition: color 0.2s ease;
     }
 
-    .clear-action:hover {
-      color: var(--danger);
-    }
-
-    .clear-action svg {
-      width: 14px;
-      height: 14px;
-      stroke: currentColor;
-    }
+    .clear-action:hover { color: var(--danger); }
+    .clear-action svg { width: 14px; height: 14px; stroke: currentColor; }
 
     .visualizer-strip {
       display: none;
@@ -385,9 +377,7 @@
       margin: 10px 0 3px;
     }
 
-    .visualizer-strip.active {
-      display: flex;
-    }
+    .visualizer-strip.active { display: flex; }
 
     .wave-bar {
       width: 3px;
@@ -498,10 +488,7 @@
       animation: dash 1.5s ease-in-out infinite;
     }
 
-    @keyframes rotate {
-      100% { transform: rotate(360deg); }
-    }
-
+    @keyframes rotate { 100% { transform: rotate(360deg); } }
     @keyframes dash {
       0% { stroke-dasharray: 1, 150; stroke-dashoffset: 0; }
       50% { stroke-dasharray: 90, 150; stroke-dashoffset: -35; }
@@ -519,7 +506,6 @@
       text-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
     }
 
-    /* Enlarged Attribution Footer */
     .footer {
       border-top: 1px solid var(--card-border);
       background: rgba(6, 8, 14, 0.88);
@@ -590,9 +576,11 @@
             <label for="speed-select">Speed</label>
             <select id="speed-select">
               <option value="0.75">0.75x</option>
+              <option value="0.90">0.9x</option>
+              <option value="0.95">0.95x</option>
               <option value="1.0" selected>1.0x (Normal)</option>
               <option value="1.25">1.25x</option>
-              <option value="1.5">1.5x</option>
+              <option value="1.50">1.5x</option>
             </select>
           </div>
         </div>
@@ -673,6 +661,10 @@
   </footer>
 
   <script>
+    if (window.pdfjsLib) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+
     let currentAudioBlob = null;
     const textInput = document.getElementById('text-input');
     const convertBtn = document.getElementById('convert-btn');
@@ -707,38 +699,47 @@
       statusMsg.textContent = 'Playback completed.';
     });
 
-    // File Upload Handler via Backend Extract API
+    // In-browser Document Parsing: No server stream timeout or closed file errors
     fileInput.addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
 
       statusMsg.textContent = `Reading ${file.name}... Please wait.`;
-      const formData = new FormData();
-      formData.append('file', file);
+      const fileNameLower = file.name.toLowerCase();
 
       try {
-        const response = await fetch('/api/extract-text', {
-          method: 'POST',
-          body: formData
-        });
+        let extractedText = '';
 
-        if (!response.ok) {
-          let errText = 'Extraction failed';
-          try {
-            const errJson = await response.json();
-            errText = errJson.error || errText;
-          } catch (_) {
-            errText = await response.text();
+        if (fileNameLower.endsWith('.pdf')) {
+          const arrayBuffer = await file.arrayBuffer();
+          const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+          let fullText = '';
+          for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+            const pageStr = textContent.items.map(item => item.str).join(' ');
+            fullText += pageStr + '\n';
           }
-          throw new Error(errText);
+          extractedText = fullText;
+        } else if (fileNameLower.endsWith('.docx')) {
+          const arrayBuffer = await file.arrayBuffer();
+          const result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
+          extractedText = result.value;
+        } else {
+          extractedText = await file.text();
         }
 
-        const data = await response.json();
-        textInput.value = data.text;
+        extractedText = extractedText.replace(/[ \t]+/g, ' ').replace(/\n+/g, '\n').trim();
+
+        if (!extractedText) {
+          throw new Error('No readable text found in document.');
+        }
+
+        textInput.value = extractedText;
         updateCounter();
-        statusMsg.textContent = `Imported: ${file.name}`;
+        statusMsg.textContent = `Imported: ${file.name} (${extractedText.length} characters)`;
       } catch (err) {
-        statusMsg.textContent = `Upload Error: ${err.message}`;
+        statusMsg.textContent = `File Error: ${err.message}`;
       } finally {
         fileInput.value = '';
       }
@@ -758,7 +759,7 @@
       textInput.focus();
     });
 
-    // Natural text chunking to prevent Vercel execution timeouts
+    // Sentence splitting to ensure rapid chunk processing without timeouts
     function splitTextForSynthesis(text, maxLen = 150) {
       const rawSentences = text.split(/([।\.\n\?\!]+)/);
       const chunks = [];
@@ -787,6 +788,7 @@
       const chunks = splitTextForSynthesis(text);
       if (!chunks.length) return;
 
+      const speedVal = speedSelect.value;
       convertBtn.disabled = true;
       downloadBtn.disabled = true;
       micIcon.style.display = 'none';
@@ -797,15 +799,15 @@
         const audioParts = [];
 
         for (let i = 0; i < chunks.length; i++) {
-          statusMsg.textContent = `Synthesizing chunk ${i + 1} of ${chunks.length}...`;
+          statusMsg.textContent = `Synthesizing Indian Male voice: chunk ${i + 1} of ${chunks.length}...`;
           const resp = await fetch('/api/convert', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: chunks[i] })
+            body: JSON.stringify({ text: chunks[i], speed: speedVal })
           });
 
           if (!resp.ok) {
-            let errDetail = 'Failed on chunk synthesis';
+            let errDetail = 'Synthesis failed';
             try {
               const j = await resp.json();
               errDetail = j.error || errDetail;
@@ -824,7 +826,6 @@
         const audioUrl = URL.createObjectURL(currentAudioBlob);
 
         audioPlayer.src = audioUrl;
-        audioPlayer.playbackRate = parseFloat(speedSelect.value) || 1.0;
         audioPlayer.style.display = 'block';
         audioPlayer.play();
 
@@ -837,12 +838,6 @@
         micIcon.style.display = 'inline-block';
         spinnerIcon.style.display = 'none';
         convertBtnText.textContent = 'Convert to Audio';
-      }
-    });
-
-    speedSelect.addEventListener('change', () => {
-      if (audioPlayer && audioPlayer.src) {
-        audioPlayer.playbackRate = parseFloat(speedSelect.value) || 1.0;
       }
     });
 
