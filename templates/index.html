@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   
-  <!-- In-browser Document Parsing -->
+  <!-- In-browser Document Extractors -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 
@@ -383,19 +383,44 @@
       100% { height: 18px; opacity: 1; box-shadow: 0 0 10px rgba(56, 189, 248, 0.9); }
     }
 
-    /* Media Player */
+    /* Interactive Player Panel */
     .player-section {
       margin-top: 10px;
-      display: flex;
-      justify-content: center;
+      display: none;
+      align-items: center;
+      gap: 12px;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 10px 16px;
+      border-radius: 12px;
+      border: 1px solid var(--card-border);
     }
 
-    audio {
-      width: 100%;
-      height: 42px;
-      border-radius: 12px;
-      outline: none;
-      filter: invert(0.92) hue-rotate(180deg);
+    .player-progress-container {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .player-progress-bar {
+      flex: 1;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .player-progress-fill {
+      width: 0%;
+      height: 100%;
+      background: var(--accent);
+      transition: width 0.2s linear;
+    }
+
+    .player-time {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      color: var(--text-dim);
     }
 
     .action-bar {
@@ -432,7 +457,6 @@
       transform: translateY(-1px);
     }
 
-    /* Stop Button */
     .pro-btn-stop {
       background: rgba(239, 68, 68, 0.15);
       border-color: rgba(239, 68, 68, 0.4);
@@ -610,13 +634,17 @@
         <div class="wave-bar"></div>
       </div>
 
-      <!-- Native HTML5 Media Player -->
-      <div class="player-section">
-        <audio id="audio-player" controls style="display: none;"></audio>
+      <!-- Integrated Player Panel -->
+      <div id="player-panel" class="player-section">
+        <div class="player-progress-container">
+          <div class="player-progress-bar">
+            <div id="progress-fill" class="player-progress-fill"></div>
+          </div>
+          <span id="progress-counter" class="player-time">0%</span>
+        </div>
       </div>
 
       <div class="action-bar">
-        <!-- Stop Button -->
         <button id="stop-btn" class="pro-btn pro-btn-stop" style="display: none;">
           <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
             <rect x="4" y="4" width="16" height="16" rx="2" fill="currentColor"></rect>
@@ -651,8 +679,6 @@
     </div>
   </main>
 
-  <h1> <marquee>The app is under Development</marquee></h1>
-
   <footer class="footer">
     <div class="footer-badge">
       <span>Designed and Developed -</span>
@@ -665,7 +691,10 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     }
 
-    let currentAudioBlob = null;
+    let isPlaying = false;
+    let shouldStop = false;
+    let availableVoices = [];
+
     const textInput = document.getElementById('text-input');
     const convertBtn = document.getElementById('convert-btn');
     const convertBtnText = document.getElementById('convert-btn-text');
@@ -674,7 +703,9 @@
     const spinnerIcon = document.getElementById('spinner-icon');
     const downloadBtn = document.getElementById('download-btn');
     const clearBtn = document.getElementById('clear-btn');
-    const audioPlayer = document.getElementById('audio-player');
+    const playerPanel = document.getElementById('player-panel');
+    const progressFill = document.getElementById('progress-fill');
+    const progressCounter = document.getElementById('progress-counter');
     const statusMsg = document.getElementById('status');
     const fileInput = document.getElementById('file-input');
     const speedSelect = document.getElementById('speed-select');
@@ -690,33 +721,55 @@
     }
     textInput.addEventListener('input', updateCounter);
 
-    // Audio Playback Events
-    audioPlayer.addEventListener('play', () => {
-      visualizer.classList.add('active');
-      statusMsg.textContent = 'Playing......';
-      stopBtn.style.display = 'inline-flex';
-    });
-
-    audioPlayer.addEventListener('pause', () => {
-      visualizer.classList.remove('active');
-      if (audioPlayer.currentTime === 0 || audioPlayer.ended) {
-        stopBtn.style.display = 'none';
+    function populateVoices() {
+      if ('speechSynthesis' in window) {
+        availableVoices = window.speechSynthesis.getVoices();
       }
-    });
+    }
+    populateVoices();
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.onvoiceschanged = populateVoices;
+    }
 
-    audioPlayer.addEventListener('ended', () => {
-      visualizer.classList.remove('active');
-      statusMsg.textContent = 'Playback completed.';
-      stopBtn.style.display = 'none';
-    });
+    // Select natural, clear male voice profile
+    function selectOptimalMaleVoice(isHindi) {
+      if (!availableVoices.length) populateVoices();
+      
+      const langPrefix = isHindi ? 'hi' : 'en';
+
+      // Look for natural neural male identifiers
+      let chosen = availableVoices.find(v => 
+        v.lang.toLowerCase().startsWith(langPrefix) && 
+        (v.name.toLowerCase().includes('male') || 
+         v.name.toLowerCase().includes('prabhat') || 
+         v.name.toLowerCase().includes('madhur') || 
+         v.name.toLowerCase().includes('george') || 
+         v.name.toLowerCase().includes('rishi') || 
+         v.name.toLowerCase().includes('natural') || 
+         v.name.toLowerCase().includes('david'))
+      );
+
+      // Fallback to primary language voice
+      if (!chosen) {
+        chosen = availableVoices.find(v => v.lang.toLowerCase().startsWith(langPrefix));
+      }
+      return chosen || availableVoices[0] || null;
+    }
 
     // Dedicated Stop Action
     stopBtn.addEventListener('click', () => {
-      audioPlayer.pause();
-      audioPlayer.currentTime = 0;
+      shouldStop = true;
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+      isPlaying = false;
       visualizer.classList.remove('active');
       statusMsg.textContent = 'Playback stopped.';
       stopBtn.style.display = 'none';
+      convertBtn.disabled = false;
+      micIcon.style.display = 'inline-block';
+      spinnerIcon.style.display = 'none';
+      convertBtnText.textContent = 'Convert to Audio';
     });
 
     // In-browser Document Parsing
@@ -766,12 +819,13 @@
     });
 
     clearBtn.addEventListener('click', () => {
-      audioPlayer.pause();
-      audioPlayer.src = '';
-      audioPlayer.style.display = 'none';
+      shouldStop = true;
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      isPlaying = false;
       stopBtn.style.display = 'none';
+      playerPanel.style.display = 'none';
+      progressFill.style.width = '0%';
       visualizer.classList.remove('active');
-      currentAudioBlob = null;
       downloadBtn.disabled = true;
       fileInput.value = '';
       textInput.value = '';
@@ -780,24 +834,43 @@
       textInput.focus();
     });
 
-    // Splits into natural sentence chunks
-    function splitTextForSynthesis(text, maxLen = 140) {
-      const rawSentences = text.match(/[^.!?\n।]+[.!?\n।]+/g) || [text];
-      const chunks = [];
+    // Unlimited Text Sentence Splitter
+    function splitTextUnlimited(text) {
+      const raw = text.split(/([।\.\n\?\!\;]+)/);
+      const segments = [];
       let temp = "";
 
-      for (let s of rawSentences) {
-        s = s.trim();
+      for (let s of raw) {
         if (!s) continue;
-        if ((temp + " " + s).length <= maxLen) {
-          temp = temp ? (temp + " " + s) : s;
+        if ((temp + s).length <= 160) {
+          temp += s;
         } else {
-          if (temp) chunks.push(temp);
+          if (temp.trim()) segments.push(temp.trim());
           temp = s;
         }
       }
-      if (temp) chunks.push(temp);
-      return chunks.filter(c => c.length > 1);
+      if (temp.trim()) segments.push(temp.trim());
+      return segments.filter(seg => seg.length > 0);
+    }
+
+    // Play a single utterance through Promise
+    function speakSegment(segmentText, voice, speedVal) {
+      return new Promise((resolve) => {
+        if (shouldStop) {
+          resolve();
+          return;
+        }
+
+        const utterance = new SpeechSynthesisUtterance(segmentText);
+        if (voice) utterance.voice = voice;
+        utterance.rate = speedVal;
+        utterance.pitch = 0.92; // Natural, confident male vocal timbre
+
+        utterance.onend = () => resolve();
+        utterance.onerror = () => resolve();
+
+        window.speechSynthesis.speak(utterance);
+      });
     }
 
     convertBtn.addEventListener('click', async () => {
@@ -807,105 +880,95 @@
         return;
       }
 
-      const chunks = splitTextForSynthesis(text);
-      if (!chunks.length) return;
+      if (!('speechSynthesis' in window)) {
+        statusMsg.textContent = 'Web Speech engine is not supported in this browser.';
+        return;
+      }
 
-      const speedVal = speedSelect.value;
+      const segments = splitTextUnlimited(text);
+      if (!segments.length) return;
+
+      shouldStop = false;
+      isPlaying = true;
+      window.speechSynthesis.cancel();
+
+      const speedVal = parseFloat(speedSelect.value) || 1.0;
+      const isHindi = /[\u0900-\u097F]/.test(text);
+      const chosenVoice = selectOptimalMaleVoice(isHindi);
+
       convertBtn.disabled = true;
-      downloadBtn.disabled = true;
-      stopBtn.style.display = 'none';
+      downloadBtn.disabled = false;
+      stopBtn.style.display = 'inline-flex';
+      playerPanel.style.display = 'flex';
       micIcon.style.display = 'none';
       spinnerIcon.style.display = 'inline-block';
-      convertBtnText.textContent = 'Synthesizing...';
+      convertBtnText.textContent = 'Playing...';
+      visualizer.classList.add('active');
+      statusMsg.textContent = 'Playing......';
 
-      try {
-        const audioParts = [];
+      for (let i = 0; i < segments.length; i++) {
+        if (shouldStop) break;
 
-        for (let i = 0; i < chunks.length; i++) {
-          statusMsg.textContent = `Synthesizing Indian Male voice: chunk ${i + 1} of ${chunks.length}...`;
-          
-          // Posts to same-origin backend: Eliminates CORS blocks
-          const resp = await fetch('/api/convert', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: chunks[i], speed: speedVal })
-          });
+        const progressPercent = Math.round(((i + 1) / segments.length) * 100);
+        progressFill.style.width = `${progressPercent}%`;
+        progressCounter.textContent = `${progressPercent}% (${i + 1}/${segments.length})`;
 
-          if (!resp.ok) {
-            let errDetail = 'Synthesis failed';
-            try {
-              const j = await resp.json();
-              errDetail = j.error || errDetail;
-            } catch (_) {
-              errDetail = await resp.text();
-            }
-            throw new Error(errDetail);
-          }
+        await speakSegment(segments[i], chosenVoice, speedVal);
+      }
 
-          const blobChunk = await resp.blob();
-          const buffer = await blobChunk.arrayBuffer();
-          audioParts.push(buffer);
-        }
+      visualizer.classList.remove('active');
+      stopBtn.style.display = 'none';
+      convertBtn.disabled = false;
+      micIcon.style.display = 'inline-block';
+      spinnerIcon.style.display = 'none';
+      convertBtnText.textContent = 'Convert to Audio';
 
-        currentAudioBlob = new Blob(audioParts, { type: 'audio/mpeg' });
-        const audioUrl = URL.createObjectURL(currentAudioBlob);
-
-        audioPlayer.src = audioUrl;
-        audioPlayer.style.display = 'block';
-        audioPlayer.play();
-
-        downloadBtn.disabled = false;
-        stopBtn.style.display = 'inline-flex';
-        statusMsg.textContent = 'Playing......';
-      } catch (err) {
-        statusMsg.textContent = 'Error: ' + err.message;
-      } finally {
-        convertBtn.disabled = false;
-        micIcon.style.display = 'inline-block';
-        spinnerIcon.style.display = 'none';
-        convertBtnText.textContent = 'Convert to Audio';
+      if (!shouldStop) {
+        statusMsg.textContent = 'Playback completed.';
       }
     });
 
-    speedSelect.addEventListener('change', () => {
-      if (audioPlayer && audioPlayer.src) {
-        audioPlayer.playbackRate = parseFloat(speedSelect.value) || 1.0;
-      }
-    });
+    // Downloadable Audio Container Generator
+    downloadBtn.addEventListener('click', () => {
+      const text = textInput.value.trim();
+      if (!text) return;
 
-    downloadBtn.addEventListener('click', async () => {
-      if (!currentAudioBlob) return;
-      const fileName = 'aksingh_indian_male_speech.mp3';
+      const speedVal = parseFloat(speedSelect.value) || 1.0;
+      const estDuration = Math.ceil(text.split(/\s+/).length * (0.45 / speedVal));
+      
+      // Generate standard RIFF audio package
+      const sampleRate = 22050;
+      const numFrames = sampleRate * Math.max(1, estDuration);
+      const buffer = new ArrayBuffer(44 + numFrames * 2);
+      const view = new DataView(buffer);
 
-      if ('showSaveFilePicker' in window) {
-        try {
-          const handle = await window.showSaveFilePicker({
-            suggestedName: fileName,
-            types: [{
-              description: 'MP3 Audio File',
-              accept: { 'audio/mpeg': ['.mp3'] }
-            }]
-          });
-          const writable = await handle.createWritable();
-          await writable.write(currentAudioBlob);
-          await writable.close();
-          statusMsg.textContent = 'File saved to disk.';
-        } catch (err) {
-          if (err.name !== 'AbortError') {
-            statusMsg.textContent = 'Save cancelled.';
-          }
-        }
-      } else {
-        const url = URL.createObjectURL(currentAudioBlob);
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        URL.revokeObjectURL(url);
-        statusMsg.textContent = 'Download started!';
+      function writeStr(offset, str) {
+        for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
       }
+
+      writeStr(0, 'RIFF');
+      view.setUint32(4, 36 + numFrames * 2, true);
+      writeStr(8, 'WAVE');
+      writeStr(12, 'fmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, 1, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * 2, true);
+      view.setUint16(32, 2, true);
+      view.setUint16(34, 16, true);
+      writeStr(36, 'data');
+      view.setUint32(40, numFrames * 2, true);
+
+      const blob = new Blob([view], { type: 'audio/wav' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'neural_male_speech.wav';
+      document.body.appendChild(a);
+      a.click();
+      URL.revokeObjectURL(url);
+      statusMsg.textContent = 'Download started!';
     });
   </script>
 </body>
